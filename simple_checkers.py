@@ -1,12 +1,4 @@
-# Next steps:
-# X 1. Implement game-over evaluation func
-# X 2. Alpha-beta search
-# X 3. Alpha-beta info
-# 4. Starting screen - choose player
-# X 5. Double jumps
-
 import random
-from copy import deepcopy
 
 BOARD_SIZE = 6
 NUM_PLAYERS = 6
@@ -383,57 +375,15 @@ class Board:
         if (isLeft):
             if (cell[1]>1 and self.boardState[cell[0]+next+next][cell[1]-2]==-1):
                 temp = Move(cell, (cell[0]+next+next, cell[1]-2), True)
-                temp.jumpOver = [(cell[0]+next,cell[1]-1)]
-                # can has double jump?
-                helper = temp.end
-        # This part is not required - This is double jumps
-                if (temp.end[0]+next > 0 and temp.end[0]+next < BOARD_SIZE-1):
-                	#enemy in top left of new square?
-                	if (temp.end[1]>1 and self.boardState[temp.end[0]+next][temp.end[1]-1]==(1-player)):
-                		test = self.checkJump(temp.end, True, player)
-                		if (test != []):
-                			dbl_temp = deepcopy(temp) #deepcopy needed?
-                			dbl_temp.end = test[0].end 
-                			dbl_temp.jumpOver.extend(test[0].jumpOver)
-                			jumps.append(dbl_temp)                		
-                	# top right?
-                	if (temp.end[1]<BOARD_SIZE-2 and self.boardState[temp.end[0]+next][temp.end[1]+1]==(1-player)):
-                		test = self.checkJump(temp.end, False, player)                	
-                		if (test != []):
-                			dbl_temp = deepcopy(temp) #deepcopy needed?
-                			dbl_temp.end = test[0].end 
-                			dbl_temp.jumpOver.extend(test[0].jumpOver)
-                			jumps.append(dbl_temp)                     			
+                temp.jumpOver = [(cell[0]+next,cell[1]-1)]                   			
                 jumps.append(temp)
         else:
         #check top right
             if (cell[1]<BOARD_SIZE-2 and self.boardState[cell[0]+next+next][cell[1]+2]==-1):
                 # ([original cell, new cell], enemy cell])
                 temp = Move(cell, (cell[0]+next+next, cell[1]+2), True)
-                temp.jumpOver = [(cell[0]+next,cell[1]+1)]
-                # can has double jump?
-                if (temp.end[0]+next > 0 and temp.end[0]+next < BOARD_SIZE-1):
-                	#enemy in top left of new square?
-                	if (temp.end[1]>1 and self.boardState[temp.end[0]+next][temp.end[1]-1]==(1-player)):
-                		test = self.checkJump(temp.end, True, player)
-                		if (test != []):
-                			dbl_temp = deepcopy(temp) #deepcopy needed?
-                			dbl_temp.end = test[0].end 
-                			dbl_temp.jumpOver.extend(test[0].jumpOver)
-                			jumps.append(dbl_temp)                     			
-                	# top right?
-                	if (temp.end[1]<BOARD_SIZE-2 and self.boardState[temp.end[0]+next][temp.end[1]+1]==(1-player)):
-                		test = self.checkJump(temp.end, False, player) 
-                		if (test != []):
-                			dbl_temp = deepcopy(temp) #deepcopy needed?
-                			dbl_temp.end = test[0].end 
-                			dbl_temp.jumpOver.extend(test[0].jumpOver)
-                			jumps.append(dbl_temp)                  			
+                temp.jumpOver = [(cell[0]+next,cell[1]+1)]                  			
                 jumps.append(temp)                
-    # uncomment this when its time to try double jumps
-     #   print("Jumps:")
-     #   for mov in jumps:
-     #       print(str(mov.start)+" "+str(mov.end)+" Jump over: "+str(mov.jumpOver))
         return jumps
     
     def calcPos(self, player):
@@ -461,37 +411,12 @@ class Board:
     def setDefaultBoard(self):
         # reset board
         # -1 = empty, 0=black, 1=white
-        # self.boardState = [
-        #     [-1,1,-1,1,-1,1,-1,1],
-        #     [1,-1,1,-1,1,-1,1,-1],
-        #     [-1,1,-1,1,-1,1,-1,1],
-        #     [-1,-1,-1,-1,-1,-1,-1,-1],
-        #     [-1,-1,-1,-1,-1,-1,-1,-1],
-        #     [0,-1,0,-1,0,-1,0,-1],
-        #     [-1,0,-1,0,-1,0,-1,0],
-        #     [0,-1,0,-1,0,-1,0,-1]
-        # ]
         self.boardState = [[-1,1,-1,1,-1,1],
             [1,-1,1,-1,1,-1],
             [-1,-1,-1,-1,-1,-1],
             [-1,-1,-1,-1,-1,-1],
             [-1,0,-1,0,-1,0],
-            [0,-1,0,-1,0,-1]]
-
-### for testing
-##    def setDefaultBoard(self):
-##        # reset board
-##        # -1 = empty, 0=black, 1=white
-##        self.boardState = [
-##            [-1,1,-1,-1,-1,-1,-1,-1],
-##            [-1,-1,1,-1,1,-1,1,-1],
-##            [-1,-1,-1,-1,-1,1,-1,-1],
-##            [0,-1,0,-1,1,-1,-1,-1],
-##            [-1,0,-1,-1,-1,0,-1,-1],
-##            [-1,-1,-1,-1,0,-1,-1,-1],
-##            [-1,-1,-1,-1,-1,-1,0,-1],
-##            [-1,-1,-1,-1,-1,-1,-1,-1]
-##        ]            
+            [0,-1,0,-1,0,-1]]          
 
 def main():
     # print("Play as: ")
