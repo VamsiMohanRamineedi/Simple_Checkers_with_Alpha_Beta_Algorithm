@@ -3,7 +3,7 @@ from copy import deepcopy
 
 BOARD_SIZE = 6
 NUM_OF_PIECES = 6
-DEPTH_LIMIT = 6
+DEPTH_LIMIT = 30
 # the players array extends to many other arrays in the program
 # in these arrays, 0 will refer to black and 1 to white
 PLAYERS = ["Black", "White"]
@@ -17,6 +17,7 @@ class Checkers:
         while not (self.gameOver(self.board)):
             self.board.drawBoardState()
             print("Current Player: "+PLAYERS[self.turn])
+
             # Human's turn
             if (self.turn == 0):
                 # get player's move
@@ -221,7 +222,7 @@ class Checkers:
     # returns a utility value for a non-terminal node
     # f(x) = 5(player piece in end)+3(player not in end)-7(opp in end)-3(opp not in end)
     def evaluation_function(self, board, currPlayer):
-    	print('\n Evaluation function is executed \n')
+        print('Evaluation function is executed \n')
         blk_far, blk_home_half, blk_opp_half = 0,0,0
         wt_far, wt_home_half, wt_opp_half = 0,0,0 
         # black's pieces
@@ -418,7 +419,7 @@ class Board:
 def main():
     print('You are Black. Do you want to move first? Press Y for Yes (or) N for No.')
     first_player = (input("Enter Y or N:"))
-    while not (first_player == 'Y' or first_player == 'N'):
+    while not (first_player == 'Y' or first_player == 'y' or first_player == 'N' or first_player == 'n'):
         first_player = (input("Please choose from the given choices: "))
     if first_player =='Y' or first_player == 'y':
     	player=0
