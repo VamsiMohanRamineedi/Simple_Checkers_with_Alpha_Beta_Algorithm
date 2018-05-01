@@ -2,7 +2,7 @@ import random
 from copy import deepcopy
 
 BOARD_SIZE = 6
-NUM_PLAYERS = 6
+NUM_OF_PIECES = 6
 DEPTH_LIMIT = 6
 # the players array extends to many other arrays in the program
 # in these arrays, 0 will refer to black and 1 to white
@@ -10,10 +10,9 @@ PLAYERS = ["Black", "White"]
 
 class Checkers:
     def __init__(self, player=0):
-        self.board = Board()
-        self.remaining = [NUM_PLAYERS, NUM_PLAYERS] # shows the remaining pieces on the board in the order [black,white]
-        self.player = player
-        self.turn = player
+        self.board = Board() # creates a board with given board_size and number of black and white pieces
+        self.remaining = [NUM_OF_PIECES, NUM_OF_PIECES] # shows the remaining pieces on the board in the order [black,white]
+        self.turn = player # maintains the state of player's turn
     def play(self):
         while not (self.gameOver(self.board)):
             self.board.drawBoardState()
@@ -26,7 +25,7 @@ class Checkers:
                     move = self.getMove(legal)
                     self.makeMove(move)
                 else:
-                    print("No legal moves available, skipping turn...")
+                    print("No legal moves available, forfeitting your turn...")
 
             # Computer's turn
             else:
@@ -40,18 +39,19 @@ class Checkers:
                         choice = self.alpha_beta(state)
                     self.makeMove(choice)
                     print("Computer chooses ("+str(choice.start)+", "+str(choice.end)+")")
+                else:
+                	print("No legal moves available, forfeitting Computer's turn...")
             # changing player's turn
             self.turn = 1-self.turn
 
         self.board.drawBoardState()
         print("------------------- Game OVER ---------------------- \n")
-        score = self.calcScore(self.board)
-        print("Your pieces remained on the board = "+str(score[0]))
-        print("Computer pieces remained on the board = "+str(score[1]))
+        print("Your pieces remained on the board = "+str(self.remaining[0]))
+        print("Computer pieces remained on the board = "+str(self.remaining[1]))
         print('\n')
-        if (score[1] > score[0]):
+        if (self.remaining[1] > self.remaining[0]):
               print("Computer wins!")
-        elif (score[0] > score[1]):
+        elif (self.remaining[0] > self.remaining[1]):
               print("You win!")
         else:
             print("It's a draw!")
@@ -69,12 +69,13 @@ class Checkers:
         # repeats until player picks move on the list
         while move not in range(len(legal)):
             # List valid moves:
-            print("Valid Moves: (row, col) ")
+            print("Valid Moves: ")
             print('\n')
             for i in range(len(legal)):
                 print(str(i+1)+": ",end='')
                 print(str(legal[i].start)+" "+str(legal[i].end))
             print('\n')
+            print('The displayed moves are in the form (row, col)')
             usr_input = input("Pick a move: ")
             # stops error caused when user inputs nothing
             move = -1 if (usr_input == '')  else (int(usr_input)-1)
@@ -99,9 +100,21 @@ class Checkers:
     def calcScore(self, board):
         score = [0,0]
         # black pieces
-        score[0] = self.remaining[0]
+        for cell in range(len(board.currPos[0])):
+            # black pieces at end of board - 2 pts
+            if (board.currPos[0][cell][0] == 0):
+                score[0] += 2
+            # black pieces not at end - 1 pt
+            else:
+                score[0] += 1
         # white pieces
-        score[1] = self.remaining[1]
+        for cell in range(len(board.currPos[1])):
+            # white pieces at end of board - 2 pts
+            if (board.currPos[1][cell][0] == BOARD_SIZE-1):
+                score[1] += 2
+            # white pieces not at end - 1 pt
+            else:
+                score[1] += 1
         return score
         
     # state = board, player
