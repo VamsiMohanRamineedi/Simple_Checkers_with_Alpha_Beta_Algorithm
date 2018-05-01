@@ -1,40 +1,36 @@
 import random
+from copy import deepcopy
 
 BOARD_SIZE = 6
 NUM_PLAYERS = 6
-DEPTH_LIMIT = 5
+DEPTH_LIMIT = 6
 # the players array extends to many other arrays in the program
 # in these arrays, 0 will refer to black and 1 to white
 PLAYERS = ["Black", "White"]
 
-class Game:
+class Checkers:
     def __init__(self, player=0):
         self.board = Board()
-        # refers to how many pieces that play
-        self.remaining = [NUM_PLAYERS, NUM_PLAYERS]
-        # default player is black
+        self.remaining = [NUM_PLAYERS, NUM_PLAYERS] # shows the remaining pieces on the board in the order [black,white]
         self.player = player
-        self.turn = 0
-    def run(self):
+        self.turn = player
+    def play(self):
         while not (self.gameOver(self.board)):
             self.board.drawBoardState()
             print("Current Player: "+PLAYERS[self.turn])
-            if (self.turn == self.player):
+            # Human's turn
+            if (self.turn == 0):
                 # get player's move
                 legal = self.board.calcLegalMoves(self.turn)
                 if (len(legal) > 0):
-            #        choice = random.randint(0,len(legal)-1)
-            #        move = legal[choice]
                     move = self.getMove(legal)
                     self.makeMove(move)
                 else:
                     print("No legal moves available, skipping turn...")
+
+            # Computer's turn
             else:
                 legal = self.board.calcLegalMoves(self.turn)
-                print("Valid Moves: ")
-                for i in range(len(legal)):
-                    print(str(i+1)+": ",end='')
-                    print(str(legal[i].start)+" "+str(legal[i].end))
                 if (len(legal)>0):
                     # no need for AI if there's only one choice!
                     if (len(legal)==1):
@@ -42,28 +38,23 @@ class Game:
                     else:
                         state = AB_State(self.board, self.turn, self.turn)
                         choice = self.alpha_beta(state)
-            #        choice = random.randint(0,len(legal)-1)  
-            #        choice = legal[choice]                            
-            #        print(legal)
-            #        print([choice.start, choice.end])
-
                     self.makeMove(choice)
                     print("Computer chooses ("+str(choice.start)+", "+str(choice.end)+")")
-            # switch player after move
+            # changing player's turn
             self.turn = 1-self.turn
-        print("Game OVER")
-        print("Black Captured: "+str(NUM_PLAYERS-self.remaining[1]))
-        print("White Captured: "+str(NUM_PLAYERS-self.remaining[0]))
-        score = self.calcScore(self.board)
-        print("Black Score: "+str(score[0]))
-        print("White Score: "+str(score[1]))
-        if (score[0] > score[1]):
-              print("Black wins!")
-        elif (score[1] > score[0]):
-              print("White wins!")
-        else:
-            print("It's a tie!")
+
         self.board.drawBoardState()
+        print("------------------- Game OVER ---------------------- \n")
+        score = self.calcScore(self.board)
+        print("Your pieces remained on the board = "+str(score[0]))
+        print("Computer pieces remained on the board = "+str(score[1]))
+        print('\n')
+        if (score[1] > score[0]):
+              print("Computer wins!")
+        elif (score[0] > score[1]):
+              print("You win!")
+        else:
+            print("It's a draw!")
 
     def makeMove(self, move):
 
@@ -78,10 +69,12 @@ class Game:
         # repeats until player picks move on the list
         while move not in range(len(legal)):
             # List valid moves:
-            print("Valid Moves: ")
+            print("Valid Moves: (row, col) ")
+            print('\n')
             for i in range(len(legal)):
                 print(str(i+1)+": ",end='')
                 print(str(legal[i].start)+" "+str(legal[i].end))
+            print('\n')
             usr_input = input("Pick a move: ")
             # stops error caused when user inputs nothing
             move = -1 if (usr_input == '')  else (int(usr_input)-1)
@@ -106,21 +99,9 @@ class Game:
     def calcScore(self, board):
         score = [0,0]
         # black pieces
-        for cell in range(len(board.currPos[0])):
-            # black pieces at end of board - 2 pts
-            if (board.currPos[0][cell][0] == 0):
-                score[0] += 2
-            # black pieces not at end - 1 pt
-            else:
-                score[0] += 1
+        score[0] = self.remaining[0]
         # white pieces
-        for cell in range(len(board.currPos[1])):
-            # white pieces at end of board - 2 pts
-            if (board.currPos[1][cell][0] == BOARD_SIZE-1):
-                score[1] += 2
-            # white pieces not at end - 1 pt
-            else:
-                score[1] += 1
+        score[1] = self.remaining[1]
         return score
         
     # state = board, player
@@ -227,6 +208,7 @@ class Game:
     # returns a utility value for a non-terminal node
     # f(x) = 5(player piece in end)+3(player not in end)-7(opp in end)-3(opp not in end)
     def evaluation_function(self, board, currPlayer):
+    	print('\n Evaluation function is executed \n')
         blk_far, blk_home_half, blk_opp_half = 0,0,0
         wt_far, wt_home_half, wt_opp_half = 0,0,0 
         # black's pieces
@@ -395,21 +377,23 @@ class Board:
         return pos
          
     def drawBoardState(self):
+        print('\n')
         for colnum in range(BOARD_SIZE):
             print(str(colnum)+" ",end="")
         print("")
         for row in range(BOARD_SIZE):
             for col in range(BOARD_SIZE):
                 if (self.boardState[row][col] == -1):
-                    print("+ ",end='')
+                    print("_ ",end='')
                 elif (self.boardState[row][col] == 1):
                     print("W ",end='')
                 elif (self.boardState[row][col] == 0):
                     print("B ",end='')
             print(str(row))
+        print('\n')
 
     def setDefaultBoard(self):
-        # reset board
+        # resets the board
         # -1 = empty, 0=black, 1=white
         self.boardState = [[-1,1,-1,1,-1,1],
             [1,-1,1,-1,1,-1],
@@ -419,18 +403,15 @@ class Board:
             [0,-1,0,-1,0,-1]]          
 
 def main():
-    # print("Play as: ")
-    # print("(0) Black")
-    # print("(1) White")
-    print('Computer is Black and You are White. Do you want to move first? Press Y for Yes (or) N for No.')
+    print('You are Black. Do you want to move first? Press Y for Yes (or) N for No.')
     first_player = (input("Enter Y or N:"))
     while not (first_player == 'Y' or first_player == 'N'):
-        first_player = (input("Invalid Choice, please try again: "))
-    if first_player =='Y':
-    	player=1
-    elif first_player =='N':
+        first_player = (input("Please choose from the given choices: "))
+    if first_player =='Y' or first_player == 'y':
     	player=0
-    checkers = Game(player)
-    checkers.run()
+    elif first_player =='N' or first_player == 'n':
+    	player=1
+    checkers = Checkers(player)
+    checkers.play()
     
 main()
