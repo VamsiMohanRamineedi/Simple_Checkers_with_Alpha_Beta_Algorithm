@@ -3,7 +3,7 @@ from copy import deepcopy
 
 BOARD_SIZE = 6
 NUM_OF_PIECES = 6
-DEPTH_LIMIT = 30
+DEPTH_LIMIT = 10
 # the players array extends to many other arrays in the program
 # in these arrays, 0 will refer to black and 1 to white
 PLAYERS = ["Black", "White"]
@@ -97,30 +97,24 @@ class Checkers:
             # continue onwards
             return False
             
-    #calculates the final score for the board
-    def calcScore(self, board):
-        score = [0,0]
-        # black pieces
-        for cell in range(len(board.currPos[0])):
-            # black pieces at end of board - 2 pts
-            if (board.currPos[0][cell][0] == 0):
-                score[0] += 2
-            # black pieces not at end - 1 pt
-            else:
-                score[0] += 1
-        # white pieces
-        for cell in range(len(board.currPos[1])):
-            # white pieces at end of board - 2 pts
-            if (board.currPos[1][cell][0] == BOARD_SIZE-1):
-                score[1] += 2
-            # white pieces not at end - 1 pt
-            else:
-                score[1] += 1
-        return score
+    
+    def UTILITY(self, board):
+        ''' Returns the utility value for a given game state'''
+
+        # white wins, return utility value of +1000
+        if len(board.currPos[1]) > len(board.currPos[0]):
+        	return 1000
+        # black wins, return utility value of -1000
+        elif len(board.currPos[0]) > len(board.currPos[1]):
+        	return -1000
+        # game is a draw
+        else:
+        	return 0
+
         
     # state = board, player
     def alpha_beta(self, state):
-        result = self.max_value(state, -999, 999, 0)
+        result = self.max_value(state, -1000, 1000, 0)
         print("Total nodes generated: "+str(result.nodes))
         print("Max depth: "+str(result.max_depth))
         print("Max Val Cutoffs: "+str(result.max_cutoff))
@@ -134,22 +128,15 @@ class Checkers:
       num_act = len(actions)
       # v <- -inf
       # self, move_value, move, max_depth, total_nodes, max_cutoff, min_cutoff
-      v = AB_Value(-999, None, node, 1, 0, 0)
+      v = AB_Value(-1000, None, node, 1, 0, 0)
       # depth cutoff
       if (node == DEPTH_LIMIT):
          v.move_value = self.evaluation_function(state.board, state.origPlayer)
    #      print("Depth Cutoff. Eval value: "+str(v.move_value))
          return v      
-      if (len(actions)==0):
-         # return Utility(state)
-         score = self.calcScore(state.board)
-         if (score[state.origPlayer] > score[1-state.origPlayer]):
-            v.move_value = 100 + (2*score[state.origPlayer]-score[1-state.origPlayer])
-   #         print("(max) Terminal Node Score: "+str(v.move_value))
-         else:
-            v.move_value = -100 + (2*score[state.origPlayer]-score[1-state.origPlayer])
-   #         print("(max) Terminal Node Score: "+str(v.move_value))            
-         return v
+      if (len(actions)==0): 
+         	v.move_value = self.UTILITY(state.board)
+         	return v 
       for a in actions:
          newState = AB_State(deepcopy(state.board), 1-state.player, state.origPlayer)
          # RESULT(s,a)
@@ -174,50 +161,46 @@ class Checkers:
 
    # returns min value
     def min_value(self, state, alpha, beta, node):
-      #if terminalTest(state)
-      actions = state.board.calcLegalMoves(state.player)
-      num_act = len(actions)
-      # v <- inf
-      # self, move_value, move, max_depth, total_nodes, max_cutoff, min_cutoff
-      v = AB_Value(999, None, node, 1, 0, 0)
+
+    	# v <- inf
+     	# self, move_value, move, max_depth, total_nodes, max_cutoff, min_cutoff
+     	v = AB_Value(1000, None, node, 1, 0, 0)
+
+    	# if TERMINAL-TEST(state) then return UTILITY(state)
+      	actions = state.board.calcLegalMoves(state.player)
+     	num_act = len(actions)
+      	if (len(actions)==0): 
+         	v.move_value = self.UTILITY(state.board)
+         	return v 
+      
       # depth cutoff
-      if (node == DEPTH_LIMIT):
-         v.move_value = self.evaluation_function(state.board, state.player)
-   #      print("Depth Cutoff. Eval value: "+str(v.move_value))
-         return v
-      if (len(actions)==0):
-         # return Utility(state)
-         score = self.calcScore(state.board)
-         if (score[state.origPlayer] > score[1-state.origPlayer]):
-            v.move_value = 100 + (2*score[state.origPlayer]-score[1-state.origPlayer])
-    #        print("(min) Terminal Node Score: "+str(v.move_value))            
-         else:
-            v.move_value = -100 + (2*score[state.origPlayer]-score[1-state.origPlayer])
-    #        print("(min) Terminal Node Score: "+str(v.move_value))
-         return v     
-      for a in actions:
-         newState = AB_State(deepcopy(state.board), 1-state.player, state.origPlayer)
-         eval = self.evaluation_function(self.board, self.turn)
-    #     print("Current Evaluation: "+str(eval))
-         # RESULT(s,a)
-         newState.board.boardMove(a, state.player)
-         new_v = self.max_value(newState, alpha, beta, node+1)
-         # compute new values for nodes and cutoffs in recursion
-         if (new_v.max_depth > v.max_depth):
-             v.max_depth = new_v.max_depth
-         v.nodes += new_v.nodes
-         v.max_cutoff += new_v.max_cutoff
-         v.min_cutoff += new_v.min_cutoff
-         # v <- Min(v, MAX_VALUE(RESULT(s,a), alpha, beta))
-         if (new_v.move_value < v.move_value):
-            v.move_value = new_v.move_value
-            v.move = a
-         if (v.move_value <= alpha):
-            v.min_cutoff += 1
-            return v
-         if (v.move_value < beta):
-            beta = v.move_value
-      return v
+     	if (node == DEPTH_LIMIT):
+         	v.move_value = self.evaluation_function(state.board, state.player)
+         	#print("Depth Cutoff. Eval value: "+str(v.move_value))
+         	return v  
+      	for a in actions:
+         	newState = AB_State(deepcopy(state.board), 1-state.player, state.origPlayer)
+         	eval = self.evaluation_function(self.board, self.turn)
+         	#print("Current Evaluation: "+str(eval))
+         	# RESULT(s,a)
+         	newState.board.boardMove(a, state.player)
+         	new_v = self.max_value(newState, alpha, beta, node+1)
+        	 # compute new values for nodes and cutoffs in recursion
+         	if (new_v.max_depth > v.max_depth):
+             	v.max_depth = new_v.max_depth
+         	v.nodes += new_v.nodes
+         	v.max_cutoff += new_v.max_cutoff
+        	v.min_cutoff += new_v.min_cutoff
+         	# v <- Min(v, MAX_VALUE(RESULT(s,a), alpha, beta))
+         	if (new_v.move_value < v.move_value):
+           		v.move_value = new_v.move_value
+            	v.move = a
+         	if (v.move_value <= alpha):
+            	v.min_cutoff += 1
+            	return v
+         	if (v.move_value < beta):
+            	beta = v.move_value
+     	return v
 
     # returns a utility value for a non-terminal node
     # f(x) = 5(player piece in end)+3(player not in end)-7(opp in end)-3(opp not in end)
@@ -384,6 +367,7 @@ class Board:
     
     def calcPos(self, player):
         pos = []
+        #pieces = 0
         for row in range(BOARD_SIZE):
             for col in range(BOARD_SIZE):
                 if (self.boardState[row][col]==player):
