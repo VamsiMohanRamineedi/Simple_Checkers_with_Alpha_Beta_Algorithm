@@ -4,8 +4,7 @@ from copy import deepcopy
 BOARD_SIZE = 6
 NUM_OF_PIECES = 6
 DEPTH_LIMIT = 10
-# the players array extends to many other arrays in the program
-# in these arrays, 0 will refer to black and 1 to white
+
 PLAYERS = ["Black", "White"]
 
 class Checkers:
@@ -99,7 +98,7 @@ class Checkers:
             
     
     def UTILITY(self, board):
-        ''' Returns the utility value for a given game state'''
+        ''' Returns the utility value for a terminal node'''
 
         # white wins, return utility value of +1000
         if len(board.currPos[1]) > len(board.currPos[0]):
@@ -132,7 +131,7 @@ class Checkers:
       # depth cutoff
       if (node == DEPTH_LIMIT):
          v.move_value = self.evaluation_function(state.board, state.origPlayer)
-   #      print("Depth Cutoff. Eval value: "+str(v.move_value))
+         #print("Depth Cutoff. Eval value: "+str(v.move_value))
          return v      
       if (len(actions)==0): 
          	v.move_value = self.UTILITY(state.board)
@@ -162,7 +161,7 @@ class Checkers:
    # returns min value
     def min_value(self, state, alpha, beta, node):
 
-    	# v <- inf
+    	# v.move_value <- inf
      	# self, move_value, move, max_depth, total_nodes, max_cutoff, min_cutoff
      	v = AB_Value(1000, None, node, 1, 0, 0)
 
