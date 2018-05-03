@@ -16,7 +16,7 @@ class Checkers:
 		self.difficulty = difficulty
 		self.depth_limit = depth_limit
 	def play(self):
-		while not (self.gameOver(self.board)):
+		while not (self.isGameOver(self.board)):
 			self.board.drawBoardState()
 			print("Current Player: "+PLAYERS[self.turn])
 			# Human's turn
@@ -84,15 +84,14 @@ class Checkers:
 		return (legal[move])
 
 	# returns a boolean value determining if game finished
-	def gameOver(self, board):
-		# all pieces from one side captured
-		if (len(board.currPos[0]) == 0 or len(board.currPos[1]) == 0):
+	def isGameOver(self, board):
+		'''Returns True if all pieces of a player are captured or if there are no legal moves available'''
+
+		if (len(board.currPos[1]) == 0 or len(board.currPos[0]) == 0): # All pieces of any player captured
 			return True
-		# no legal moves available, stalemate
-		elif (len(board.calcLegalMoves(0)) == 0 and len(board.calcLegalMoves(1)) == 0):
+		elif (len(board.calcLegalMoves(1)) == 0 and len(board.calcLegalMoves(0)) == 0): # No legal moves available
 			return True
 		else:
-			# continue onwards
 			return False
 
 	def utility(self, board):
