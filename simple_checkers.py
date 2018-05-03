@@ -3,15 +3,16 @@ from copy import deepcopy
 
 BOARD_SIZE = 6
 NUM_OF_PIECES = 6
-DEPTH_LIMIT = 10
+DEPTH_LIMIT = 6
 
 PLAYERS = ["Black", "White"]
 
 class Checkers:
-	def __init__(self, player=0):
+	def __init__(self, player=0, difficulty = 1):
 		self.board = Board() # creates a board with given board_size and number of black and white pieces
 		self.remaining = [NUM_OF_PIECES, NUM_OF_PIECES] # shows the remaining pieces on the board in the order [black,white]
 		self.turn = player # maintains the state of player's turn
+		self.difficulty = difficulty
 	def play(self):
 		while not (self.gameOver(self.board)):
 			self.board.drawBoardState()
@@ -202,7 +203,7 @@ class Checkers:
 
 	def evaluation_function(self, board, currPlayer):
 		''' Returns a utility value for non-terminal node'''
-		
+
 		black_at_white_end = 0
 		black_at_white_half = 0
 		black_at_self_half = 0
@@ -232,8 +233,11 @@ class Checkers:
 			else:
 				white_at_self_half += 1
 			
-		eval_score = (100*(black_at_white_end - white_at_black_end)) + (50*(black_at_white_half - white_at_black_half)) + (10*(black_at_self_half - white_at_self_half))
-		
+		eval_score = (70*(black_at_white_end - white_at_black_end)) + (50*(black_at_white_half - white_at_black_half)) + (30*(black_at_self_half - white_at_self_half))
+		random_score = random.randint(-100,-90)
+
+		if (self.difficulty == 1):
+			return random_score
 		if (currPlayer == 1):
 			return -eval_score
 		else:
@@ -404,6 +408,10 @@ class Board:
 			[0,-1,0,-1,0,-1]]
 
 def main():
+	print('Select Difficulty Level: For Easy mode, press 1. For Normal mode, press 2. For Hard mode, press 3.')
+	difficulty = int(input('Enter 1, 2 or 3: '))
+	while not(difficulty == 1 or difficulty == 2 or difficulty == 3):
+		difficulty = int(input("Please choose from the given choices: "))
 	print('You are Black. Do you want to move first? Press Y for Yes (or) N for No.')
 	first_player = (input("Enter Y or N:"))
 	while not (first_player == 'Y' or first_player == 'y' or first_player == 'N' or first_player == 'n'):
@@ -412,7 +420,7 @@ def main():
 		player=0
 	elif first_player =='N' or first_player == 'n':
 		player=1
-	checkers = Checkers(player)
+	checkers = Checkers(player, difficulty)
 	checkers.play()
 
 main()
