@@ -3,7 +3,7 @@ from copy import deepcopy
 
 BOARD_SIZE = 6
 NUM_OF_PIECES = 6
-DEPTH_LIMIT = 6
+DEPTH_LIMIT = 10
 
 PLAYERS = ["Black", "White"]
 
@@ -92,7 +92,7 @@ class Checkers:
 			# continue onwards
 			return False
 
-	def UTILITY(self, board):
+	def utility(self, board):
 		''' Returns the utility value for a terminal node'''
 
 		# white wins, return utility value of +1000
@@ -116,20 +116,25 @@ class Checkers:
 
 	# returns max value and action associated with value
 	def max_value(self, state, alpha, beta, node):
-		# if terminalTest(state)
-		actions = state.board.calcLegalMoves(state.player)
-		num_act = len(actions)
+		
 		# v <- -inf
 		# self, move_value, move, max_depth, total_nodes, max_cutoff, min_cutoff
 		v = AB_Value(-1000, None, node, 1, 0, 0)
+
+		# if TERMINAL-TEST(state) then return utility(state)
+		actions = state.board.calcLegalMoves(state.player)
+		num_act = len(actions)
+
+		if (len(actions)==0): 
+			v.move_value = self.utility(state.board)
+			return v 
+
 		# depth cutoff
 		if (node == DEPTH_LIMIT):
 			v.move_value = self.evaluation_function(state.board, state.origPlayer)
 			#print("Depth Cutoff. Eval value: "+str(v.move_value))
 			return v      
-		if (len(actions)==0): 
-			v.move_value = self.UTILITY(state.board)
-			return v 
+		
 		for a in actions:
 			newState = AB_State(deepcopy(state.board), 1-state.player, state.origPlayer)
 			# RESULT(s,a)
@@ -157,21 +162,23 @@ class Checkers:
 		# v.move_value <- inf
 		# self, move_value, move, max_depth, total_nodes, max_cutoff, min_cutoff
 		v = AB_Value(1000, None, node, 1, 0, 0)
-		# if TERMINAL-TEST(state) then return UTILITY(state)
+
+		# if TERMINAL-TEST(state) then return utility(state)
 		actions = state.board.calcLegalMoves(state.player)
 		num_act = len(actions)
 		if (len(actions)==0): 
-			v.move_value = self.UTILITY(state.board)
+			v.move_value = self.utility(state.board)
 			return v 
       
         # depth cutoff
 		if (node == DEPTH_LIMIT):
 			v.move_value = self.evaluation_function(state.board, state.player)
 			#print("Depth Cutoff. Eval value: "+str(v.move_value))
-			return v  
+			return v
+
 		for a in actions:
 			newState = AB_State(deepcopy(state.board), 1-state.player, state.origPlayer)
-			eval = self.evaluation_function(self.board, self.turn)
+			#eval = self.evaluation_function(self.board, self.turn)
          	#print("Current Evaluation: "+str(eval))
 			# RESULT(s,a)
 			newState.board.boardMove(a, state.player)
@@ -193,39 +200,44 @@ class Checkers:
 				beta = v.move_value
 		return v
 
-	# returns a utility value for a non-terminal node
-	# f(x) = 5(player piece in end)+3(player not in end)-7(opp in end)-3(opp not in end)
 	def evaluation_function(self, board, currPlayer):
-		print('Evaluation function is executed \n')
-		blk_far, blk_home_half, blk_opp_half = 0,0,0
-		wt_far, wt_home_half, wt_opp_half = 0,0,0 
+		''' Returns a utility value for non-terminal node'''
+		
+		black_at_white_end = 0
+		black_at_white_half = 0
+		black_at_self_half = 0
+		white_at_black_end = 0
+		white_at_black_half = 0
+		white_at_self_half = 0
+
 		# black's pieces
 		for cell in range(len(board.currPos[0])):
-			# player pieces at end of board
-			if (board.currPos[0][cell][0] == BOARD_SIZE-1):
-				blk_far += 1
-			# player pieces in opponents end
-			# change to "print 'yes' if 0 < x < 0.5 else 'no'"
-			elif (BOARD_SIZE/2 <= board.currPos[0][cell][0] < BOARD_SIZE):
-				blk_opp_half += 1
+			# black pieces at row = 0
+			if (board.currPos[0][cell][0] == 0):
+				black_at_white_end += 1
+			# black pieces in white's half of the board (i.e) in rows 1 and 2
+			elif (0 <= board.currPos[0][cell][0] < BOARD_SIZE/2):
+				black_at_white_half += 1
 			else:
-				blk_home_half += 1
+				black_at_self_half += 1
+		
 		# white's pieces
 		for cell in range(len(board.currPos[1])):
-			# opp pieces at end of board 
-			if (board.currPos[1][cell][0] == 0):
-				wt_far += 1
-			# opp pieces not at own end
-			elif (0 <= board.currPos[1][cell][0] < BOARD_SIZE/2):
-				wt_opp_half += 1
+			# white pieces at row = 5 
+			if (board.currPos[1][cell][0] == BOARD_SIZE - 1):
+				white_at_black_end += 1
+			# white pieces in black's half of the board (i.e) in rows 3 and 4
+			elif (BOARD_SIZE/2 <= board.currPos[1][cell][0] < BOARD_SIZE):
+				white_at_black_half += 1
 			else:
-				wt_home_half += 1
-		white_score = (7 * wt_far) + (5 * wt_opp_half)+ (3 * wt_home_half)
-		black_score = (7 * blk_far) + (5 * blk_opp_half)+ (3 * blk_home_half)
-		if (currPlayer == 0):
-			return (black_score - white_score)
+				white_at_self_half += 1
+			
+		eval_score = (100*(black_at_white_end - white_at_black_end)) + (50*(black_at_white_half - white_at_black_half)) + (10*(black_at_self_half - white_at_self_half))
+		
+		if (currPlayer == 1):
+			return -eval_score
 		else:
-			return (white_score - black_score)       
+			return eval_score     
 
 # wrapper for alpha-beta info
 # v = [move_value, move, max tree depth, # child nodes, # max/beta cutoff, # min/alpha cutoff]
@@ -402,5 +414,5 @@ def main():
 		player=1
 	checkers = Checkers(player)
 	checkers.play()
-	
+
 main()
