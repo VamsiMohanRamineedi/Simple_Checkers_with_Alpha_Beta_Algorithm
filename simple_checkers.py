@@ -1,9 +1,10 @@
 import random
 from copy import deepcopy
+import numpy as np
 
 BOARD_SIZE = 6
 NUM_OF_PIECES = 6
-DEPTH_LIMIT = 6
+DEPTH_LIMIT = 10
 
 PLAYERS = ["Black", "White"]
 
@@ -156,6 +157,7 @@ class Checkers:
 				return v
 			if (v.move_value > alpha):
 				alpha = v.move_value
+			v.move = a
 		return v
 
 	# returns min value
@@ -199,6 +201,7 @@ class Checkers:
 				return v
 			if (v.move_value < beta):
 				beta = v.move_value
+			#v.move = a 
 		return v
 
 	def evaluation_function(self, board, currPlayer):
@@ -225,7 +228,7 @@ class Checkers:
 		# white's pieces
 		for cell in range(len(board.currPos[1])):
 			# white pieces at row = 5 
-			if (board.currPos[1][cell][0] == BOARD_SIZE - 1):
+			if (board.currPos[1][cell][0] == BOARD_SIZE-1):
 				white_at_black_end += 1
 			# white pieces in black's half of the board (i.e) in rows 3 and 4
 			elif (BOARD_SIZE/2 <= board.currPos[1][cell][0] < BOARD_SIZE):
@@ -234,14 +237,28 @@ class Checkers:
 				white_at_self_half += 1
 			
 		eval_score = (70*(black_at_white_end - white_at_black_end)) + (50*(black_at_white_half - white_at_black_half)) + (30*(black_at_self_half - white_at_self_half))
-		random_score = random.randint(-100,-90)
+		random_score = random.randint(-500, 500)
+		my_list = [eval_score, random_score]
+		np_my_list = np.array(my_list)
+		#print('random_score = '+str(random_score))
 
 		if (self.difficulty == 1):
-			return random_score
-		if (currPlayer == 1):
-			return -eval_score
+			random_eval_score = np.random.choice(np_my_list,p=[0,1])
+			return random_eval_score
+
+		elif (self.difficulty == 2):
+			random_eval_score = np.random.choice(np_my_list, p=[0.5,0.5])
+			if (currPlayer == 0):
+				return random_eval_score
+			else:
+				return -random_eval_score
+
 		else:
-			return eval_score     
+			random_eval_score = np.random.choice(np_my_list, p=[1,0])
+			if (currPlayer == 0):
+				return random_eval_score
+			else:
+				return -random_eval_score    
 
 # wrapper for alpha-beta info
 # v = [move_value, move, max tree depth, # child nodes, # max/beta cutoff, # min/alpha cutoff]
