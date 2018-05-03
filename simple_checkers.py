@@ -4,16 +4,17 @@ import numpy as np
 
 BOARD_SIZE = 6
 NUM_OF_PIECES = 6
-DEPTH_LIMIT = 10
+#DEPTH_LIMIT = 12
 
 PLAYERS = ["Black", "White"]
 
 class Checkers:
-	def __init__(self, player=0, difficulty = 1):
+	def __init__(self, player=0, difficulty = 1, depth_limit=4):
 		self.board = Board() # creates a board with given board_size and number of black and white pieces
 		self.remaining = [NUM_OF_PIECES, NUM_OF_PIECES] # shows the remaining pieces on the board in the order [black,white]
 		self.turn = player # maintains the state of player's turn
 		self.difficulty = difficulty
+		self.depth_limit = depth_limit
 	def play(self):
 		while not (self.gameOver(self.board)):
 			self.board.drawBoardState()
@@ -127,12 +128,12 @@ class Checkers:
 		actions = state.board.calcLegalMoves(state.player)
 		num_act = len(actions)
 
-		if (len(actions)==0): 
+		if (num_act==0): 
 			v.move_value = self.utility(state.board)
 			return v 
 
 		# depth cutoff
-		if (node == DEPTH_LIMIT):
+		if (node == self.depth_limit):
 			v.move_value = self.evaluation_function(state.board, state.origPlayer)
 			#print("Depth Cutoff. Eval value: "+str(v.move_value))
 			return v      
@@ -157,7 +158,8 @@ class Checkers:
 				return v
 			if (v.move_value > alpha):
 				alpha = v.move_value
-			v.move = a
+		if v.move == None:
+			v.move = np.random.choice(actions)
 		return v
 
 	# returns min value
@@ -169,12 +171,12 @@ class Checkers:
 		# if TERMINAL-TEST(state) then return utility(state)
 		actions = state.board.calcLegalMoves(state.player)
 		num_act = len(actions)
-		if (len(actions)==0): 
+		if (num_act==0): 
 			v.move_value = self.utility(state.board)
 			return v 
       
         # depth cutoff
-		if (node == DEPTH_LIMIT):
+		if (node == self.depth_limit):
 			v.move_value = self.evaluation_function(state.board, state.player)
 			#print("Depth Cutoff. Eval value: "+str(v.move_value))
 			return v
@@ -201,7 +203,9 @@ class Checkers:
 				return v
 			if (v.move_value < beta):
 				beta = v.move_value
-			#v.move = a 
+			#v.move = a
+		if v.move == None:
+			v.move = np.random.choice(actions) 
 		return v
 
 	def evaluation_function(self, board, currPlayer):
@@ -244,20 +248,25 @@ class Checkers:
 
 		if (self.difficulty == 1):
 			random_eval_score = np.random.choice(np_my_list,p=[0,1])
+			#print('Score = ',random_eval_score)
 			return random_eval_score
 
 		elif (self.difficulty == 2):
 			random_eval_score = np.random.choice(np_my_list, p=[0.5,0.5])
 			if (currPlayer == 0):
+				#print('Score = ',random_eval_score)
 				return random_eval_score
 			else:
+				#print('Score = ',-random_eval_score)
 				return -random_eval_score
 
 		else:
 			random_eval_score = np.random.choice(np_my_list, p=[1,0])
 			if (currPlayer == 0):
+				#print('Score = ',random_eval_score)
 				return random_eval_score
 			else:
+				#print('Score = ',-random_eval_score)
 				return -random_eval_score    
 
 # wrapper for alpha-beta info
@@ -429,6 +438,12 @@ def main():
 	difficulty = int(input('Enter 1, 2 or 3: '))
 	while not(difficulty == 1 or difficulty == 2 or difficulty == 3):
 		difficulty = int(input("Please choose from the given choices: "))
+	if difficulty == 1:
+		depth_limit = 4
+	elif difficulty == 2:
+		depth_limit = 8
+	else:
+		depth_limit = 12
 	print('You are Black. Do you want to move first? Press Y for Yes (or) N for No.')
 	first_player = (input("Enter Y or N:"))
 	while not (first_player == 'Y' or first_player == 'y' or first_player == 'N' or first_player == 'n'):
@@ -437,7 +452,7 @@ def main():
 		player=0
 	elif first_player =='N' or first_player == 'n':
 		player=1
-	checkers = Checkers(player, difficulty)
+	checkers = Checkers(player, difficulty, depth_limit)
 	checkers.play()
 
 main()
