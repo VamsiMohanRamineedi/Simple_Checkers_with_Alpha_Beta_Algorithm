@@ -412,21 +412,22 @@ class Board:
 
 		print('\n')
 		for col in range(BOARD_SIZE):
-			print(str(col)+" ",end="")
+			print(str(col)+" ",end='')
 		print("")
 		for row in range(BOARD_SIZE):
 			for col in range(BOARD_SIZE):
-				if (self.boardState[row][col] == -1):
+				if (self.boardState[row][col] == 0):
+					print("B ",end='')
+				elif (self.boardState[row][col] == -1):
 					print("_ ",end='')
 				elif (self.boardState[row][col] == 1):
 					print("W ",end='')
-				elif (self.boardState[row][col] == 0):
-					print("B ",end='')
 			print(str(row))
 		print('\n')
 
 	def setDefaultBoard(self):
-		# resets the board
+		''' Resets the board to initial position '''
+		
 		# -1 = empty, 0=black, 1=white
 		self.boardState = [[-1,1,-1,1,-1,1],
 			[1,-1,1,-1,1,-1],
