@@ -321,7 +321,7 @@ class Board:
 	def legalMoves(self, player): 
 		''' Returns the legal moves available'''
 
-		hasJumps = False
+		hasjumpsAvailable = False
 		legalMoves = []
 		# since white is in the upper half of the board(rows 0 and 1), their moves have to be towards rows 2,3,4 and 5. Similarly for blacks.
 		if player == 1:
@@ -338,56 +338,65 @@ class Board:
 			# diagonal left, only search if not at left edge of board
 			if (square[1]!=0):
 				# regular move
-				if(hasJumps == False and self.boardState[square[0]+forwardMoveAdd][square[1]-1]==-1):
+				if(hasjumpsAvailable == False and self.boardState[square[0]+forwardMoveAdd][square[1]-1]==-1):
 					temp = Move((square[0],square[1]),(square[0]+forwardMoveAdd,square[1]-1)) 
 					legalMoves.append(temp)
 				# capture move                    
 				elif(self.boardState[square[0]+forwardMoveAdd][square[1]-1]==1-player):
-					jumps = self.areJumpsAvailable((square[0],square[1]), True, player)
-					if (hasJumps == False and len(jumps)>0):
+					jumpsAvailable = self.arejumpsAvailableAvailable((square[0],square[1]), False, player)
+					if (hasjumpsAvailable == False and len(jumpsAvailable)>0):
 						# clearing out regular moves
 						legalMoves = []          
-						hasJumps = True
-						legalMoves.extend(jumps)
+						hasjumpsAvailable = True
+						legalMoves.extend(jumpsAvailable)
 
 			# diagonal right, only search if not at right edge of board
 			if (square[1]!=BOARD_SIZE-1):
 				# regular move
-				if (hasJumps == False and self.boardState[square[0]+forwardMoveAdd][square[1]+1]==-1):
+				if (hasjumpsAvailable == False and self.boardState[square[0]+forwardMoveAdd][square[1]+1]==-1):
 					temp = Move((square[0],square[1]),(square[0]+forwardMoveAdd,square[1]+1)) 
 					legalMoves.append(temp)
 				# capture move
 				elif(self.boardState[square[0]+forwardMoveAdd][square[1]+1]==1-player):
-					jumps = self.areJumpsAvailable((square[0],square[1]), False, player)
-					if (hasJumps == False and len(jumps)>0):
+					jumpsAvailable = self.arejumpsAvailableAvailable((square[0],square[1]), True, player)
+					if (hasjumpsAvailable == False and len(jumpsAvailable)>0):
 						# clearing out regular moves
 						legalMoves = []
-						hasJumps = True
-						legalMoves.extend(jumps)
+						hasjumpsAvailable = True
+						legalMoves.extend(jumpsAvailable)
 			
 		return legalMoves
 
 	# enemy is the square we plan to jump over
-	def areJumpsAvailable(self, square, isLeft, player):
-		jumps = []
-		forwardMoveAdd = -1 if player == 0 else 1
+	def arejumpsAvailableAvailable(self, square, isRight, player):
+		''' Returns all the available jumps'''
+
+		if player == 1:
+			forwardMoveAdd = 1
+		else:
+			forwardMoveAdd = -1
+		jumpsAvailable = []
+
 		# check boundaries!
 		if (square[0]+forwardMoveAdd == 0 or square[0]+forwardMoveAdd == BOARD_SIZE-1):
-			return jumps
-		#check top left
-		if (isLeft):
-			if (square[1]>1 and self.boardState[square[0]+forwardMoveAdd+forwardMoveAdd][square[1]-2]==-1):
-				temp = Move(square, (square[0]+forwardMoveAdd+forwardMoveAdd, square[1]-2), True)
-				temp.jumpOver = [(square[0]+forwardMoveAdd,square[1]-1)]                   			
-				jumps.append(temp)
-		else:
+			return jumpsAvailable
+
 		#check top right
+		if (isRight):
 			if (square[1]<BOARD_SIZE-2 and self.boardState[square[0]+forwardMoveAdd+forwardMoveAdd][square[1]+2]==-1):
 				# ([original square, new square], enemy square])
 				temp = Move(square, (square[0]+forwardMoveAdd+forwardMoveAdd, square[1]+2), True)
 				temp.jumpOver = [(square[0]+forwardMoveAdd,square[1]+1)]                  			
-				jumps.append(temp)                
-		return jumps
+				jumpsAvailable.append(temp) 
+			
+		else:
+		#check top left
+			if (square[1]>1 and self.boardState[square[0]+forwardMoveAdd+forwardMoveAdd][square[1]-2]==-1):
+				temp = Move(square, (square[0]+forwardMoveAdd+forwardMoveAdd, square[1]-2), True)
+				temp.jumpOver = [(square[0]+forwardMoveAdd,square[1]-1)]                   			
+				jumpsAvailable.append(temp)
+            
+		return jumpsAvailable
 
 	def calcPos(self, player):
 		pos = []
