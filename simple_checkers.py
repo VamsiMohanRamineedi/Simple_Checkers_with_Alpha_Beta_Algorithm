@@ -166,7 +166,7 @@ class Checkers:
 
 	# returns min value
 	def min_value(self, state, alpha, beta, node):
-	''' Returns the object of AB_value class having minimum value(v) and the associated action(action)'''
+		''' Returns the object of AB_value class having minimum value(v) and the associated action(action)'''
 
 		# v.move_value <- inf
 		# self, v, action, max_depth, total_nodes, max_cutoff, min_cutoff
@@ -295,10 +295,19 @@ class Move:
 
 class Board:
 	def __init__(self, board=[], currBlack=[], currWhite=[]):
-		self.boardState = board if board!=[] else self.setDefaultBoard()
+		if (board!=[]):
+			self.boardState = board     
+		else:
+			self.setDefaultBoard()
 		self.currPos = [[],[]]
-		self.currPos[0] = currBlack if currBlack != [] else self.calculatePositions(0)
-		self.currPos[1] = currWhite if currWhite != [] else self.calculatePositions(1)
+		if (currBlack != []):
+			self.currPos[0] = currBlack
+		else:
+			self.currPos[0] = self.calculatePositions(0)
+		if (currWhite != []):
+			self.currPos[1] = currWhite
+		else:
+			self.currPos[1] = self.calculatePositions(1)
 		            
 	def moveFromTo(self, start_end_info, currPlayer):
 		jump = start_end_info.jump      
@@ -371,11 +380,11 @@ class Board:
 	def arejumpsAvailableAvailable(self, square, isRight, player):
 		''' Returns all the available jumps'''
 
+		jumpsAvailable = []
 		if player == 1:
 			forwardMoveAdd = 1
 		else:
 			forwardMoveAdd = -1
-		jumpsAvailable = []
 
 		# check boundaries!
 		if (square[0]+forwardMoveAdd == 0 or square[0]+forwardMoveAdd == BOARD_SIZE-1):
@@ -427,7 +436,7 @@ class Board:
 
 	def setDefaultBoard(self):
 		''' Resets the board to initial position '''
-		
+
 		# -1 = empty, 0=black, 1=white
 		self.boardState = [[-1,1,-1,1,-1,1],
 			[1,-1,1,-1,1,-1],
