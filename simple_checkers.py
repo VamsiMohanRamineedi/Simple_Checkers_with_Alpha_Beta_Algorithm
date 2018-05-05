@@ -343,7 +343,7 @@ class Board:
 					legalMoves.append(temp)
 				# capture move                    
 				elif(self.boardState[square[0]+forwardMoveAdd][square[1]-1]==1-player):
-					jumps = self.checkJump((square[0],square[1]), True, player)
+					jumps = self.areJumpsAvailable((square[0],square[1]), True, player)
 					if (hasJumps == False and len(jumps)>0):
 						# clearing out regular moves
 						legalMoves = []          
@@ -358,7 +358,7 @@ class Board:
 					legalMoves.append(temp)
 				# capture move
 				elif(self.boardState[square[0]+forwardMoveAdd][square[1]+1]==1-player):
-					jumps = self.checkJump((square[0],square[1]), False, player)
+					jumps = self.areJumpsAvailable((square[0],square[1]), False, player)
 					if (hasJumps == False and len(jumps)>0):
 						# clearing out regular moves
 						legalMoves = []
@@ -368,7 +368,7 @@ class Board:
 		return legalMoves
 
 	# enemy is the square we plan to jump over
-	def checkJump(self, square, isLeft, player):
+	def areJumpsAvailable(self, square, isLeft, player):
 		jumps = []
 		forwardMoveAdd = -1 if player == 0 else 1
 		# check boundaries!
