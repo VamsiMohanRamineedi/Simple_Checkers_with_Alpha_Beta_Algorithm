@@ -58,7 +58,7 @@ class Checkers:
 			print("It's a draw!")
 
 	def makeAMove(self, move):
-		self.board.boardMove(move, self.turn)
+		self.board.moveFromTo(move, self.turn)
 		if move.jump:
 			self.leftOnBoard[1-self.turn] -= len(move.jumpOver) # decrease pieces leftOnBoard counter after removing a piece
 			print("Removed "+str(len(move.jumpOver))+" "+PLAYERS[1-self.turn]+" pieces")
@@ -145,7 +145,7 @@ class Checkers:
 		for a in actions:
 			newState = AB_State(deepcopy(state.board), 1-state.player, state.origPlayer)
 			# RESULT(s,a)
-			newState.board.boardMove(a, state.player)
+			newState.board.moveFromTo(a, state.player)
 			new_ab = self.min_value(newState, alpha, beta, node+1)
 			# compute new values for nodes and cutoffs in recursion
 			ab.max_depth = max(new_ab.max_depth, ab.max_depth)        
@@ -187,7 +187,7 @@ class Checkers:
 		for a in actions:
 			newState = AB_State(deepcopy(state.board), 1-state.player, state.origPlayer)
 			# RESULT(s,a)
-			newState.board.boardMove(a, state.player)
+			newState.board.moveFromTo(a, state.player)
 			new_ab = self.max_value(newState, alpha, beta, node+1)
 			# compute new values for nodes and cutoffs in recursion
 			ab.nodes += new_ab.nodes
@@ -217,23 +217,23 @@ class Checkers:
 		white_at_self_half = 0
 
 		# black's pieces
-		for cell in range(len(board.currPos[0])):
+		for square in range(len(board.currPos[0])):
 			# black pieces at row = 0
-			if (board.currPos[0][cell][0] == 0):
+			if (board.currPos[0][square][0] == 0):
 				black_at_white_end += 1
 			# black pieces in white's half of the board (i.e) in rows 1 and 2
-			elif (0 <= board.currPos[0][cell][0] < BOARD_SIZE/2):
+			elif (0 <= board.currPos[0][square][0] < BOARD_SIZE/2):
 				black_at_white_half += 1
 			else:
 				black_at_self_half += 1
 		
 		# white's pieces
-		for cell in range(len(board.currPos[1])):
+		for square in range(len(board.currPos[1])):
 			# white pieces at row = 5 
-			if (board.currPos[1][cell][0] == BOARD_SIZE-1):
+			if (board.currPos[1][square][0] == BOARD_SIZE-1):
 				white_at_black_end += 1
 			# white pieces in black's half of the board (i.e) in rows 3 and 4
-			elif (BOARD_SIZE/2 <= board.currPos[1][cell][0] < BOARD_SIZE):
+			elif (BOARD_SIZE/2 <= board.currPos[1][square][0] < BOARD_SIZE):
 				white_at_black_half += 1
 			else:
 				white_at_self_half += 1
@@ -300,91 +300,92 @@ class Board:
 		self.currPos[0] = currBlack if currBlack != [] else self.calcPos(0)
 		self.currPos[1] = currWhite if currWhite != [] else self.calcPos(1)
 		            
-	def boardMove(self, move_info, currPlayer):
-		move = [move_info.start, move_info.end]
-		#print(move)
-		#self.drawBoardState()
-		remove = move_info.jumpOver
-		jump = move_info.jump      
-		# start by making old space empty
-		self.boardState[move[0][0]][move[0][1]] = -1
-		# then set the new space to player who moved
-		self.boardState[move[1][0]][move[1][1]] = currPlayer
+	def moveFromTo(self, start_end_info, currPlayer):
+		jump = start_end_info.jump      
+		move = [start_end_info.start, start_end_info.end]
+		remove = start_end_info.jumpOver
+		
+		self.boardState[move[0][0]][move[0][1]] = -1 # emptying the old space
+		self.boardState[move[1][0]][move[1][1]] = currPlayer # allot the new space to the player who moved
 		if jump:
-			#remove jumped over enemies
-			for enemy in move_info.jumpOver:
-				self.boardState[enemy[0]][enemy[1]] = -1
-		# update currPos array
-		# if its jump, the board could be in many configs, just recalc it
-		if jump:
-			self.currPos[0] = self.calcPos(0)
+			for enemy in start_end_info.jumpOver:
+				self.boardState[enemy[0]][enemy[1]] = -1 # remove the pieces that got jumped over
+			# calculating the black and white positions since jump can alter many positions
 			self.currPos[1] = self.calcPos(1)
-		# otherwise change is predictable, so faster to just set it
+			self.currPos[0] = self.calcPos(0)
 		else:
+			# otherwise just set the positions according to the changes
 			self.currPos[currPlayer].remove((move[0][0], move[0][1]))
 			self.currPos[currPlayer].append((move[1][0], move[1][1]))
-		#print(self.currPos[currPlayer])
 
-	def legalMoves(self, player): # int array  -> [0] reg, [1] jump
-		legalMoves = []
+	def legalMoves(self, player): 
+		''' Returns the legal moves available'''
+
 		hasJumps = False
-		# next goes up if black or down if white
-		next = -1 if player == 0 else 1
-		boardLimit = 0 if player == 0 else BOARD_SIZE-1
-		# cell refers to a position tuple (row, col)
-		for cell in self.currPos[player]:
-			if (cell[0] == boardLimit):
+		legalMoves = []
+		# since white is in the upper half of the board(rows 0 and 1), their moves have to be towards rows 2,3,4 and 5. Similarly for blacks.
+		if player == 1:
+			boardEnd = BOARD_SIZE-1
+			forwardMoveAdd = 1
+		else:
+			boardEnd = 0
+			forwardMoveAdd = -1
+
+		for square in self.currPos[player]: # square is position(row#, col#) of the piece
+
+			if (square[0] == boardEnd): # pieces cant be moved once they reach opponents end
 				continue
-			# diagonal right, only search if not at right edge of board
-			if (cell[1]!=BOARD_SIZE-1):
-				#empty, regular move
-				if (self.boardState[cell[0]+next][cell[1]+1]==-1 and not hasJumps):
-					temp = Move((cell[0],cell[1]),(cell[0]+next,cell[1]+1)) 
-					legalMoves.append(temp)
-				# has enemy, can jump it?
-				elif(self.boardState[cell[0]+next][cell[1]+1]==1-player):
-					jumps = self.checkJump((cell[0],cell[1]), False, player)
-					if (len(jumps)!=0):
-						# if first jump, clear out regular moves
-						if not hasJumps:
-							hasJumps = True
-							legalMoves = []
-						legalMoves.extend(jumps)
 			# diagonal left, only search if not at left edge of board
-			if (cell[1]!=0):
-				if(self.boardState[cell[0]+next][cell[1]-1]==-1 and not hasJumps):
-					temp = Move((cell[0],cell[1]),(cell[0]+next,cell[1]-1)) 
-					legalMoves.append(temp)                    
-				elif(self.boardState[cell[0]+next][cell[1]-1]==1-player):
-					jumps = self.checkJump((cell[0],cell[1]), True, player)
-					if (len(jumps)!=0):
-						if not hasJumps:
-							hasJumps = True
-							legalMoves = []                        
+			if (square[1]!=0):
+				# regular move
+				if(hasJumps == False and self.boardState[square[0]+forwardMoveAdd][square[1]-1]==-1):
+					temp = Move((square[0],square[1]),(square[0]+forwardMoveAdd,square[1]-1)) 
+					legalMoves.append(temp)
+				# capture move                    
+				elif(self.boardState[square[0]+forwardMoveAdd][square[1]-1]==1-player):
+					jumps = self.checkJump((square[0],square[1]), True, player)
+					if (hasJumps == False and len(jumps)>0):
+						# clearing out regular moves
+						legalMoves = []          
+						hasJumps = True
 						legalMoves.extend(jumps)
 
+			# diagonal right, only search if not at right edge of board
+			if (square[1]!=BOARD_SIZE-1):
+				# regular move
+				if (hasJumps == False and self.boardState[square[0]+forwardMoveAdd][square[1]+1]==-1):
+					temp = Move((square[0],square[1]),(square[0]+forwardMoveAdd,square[1]+1)) 
+					legalMoves.append(temp)
+				# capture move
+				elif(self.boardState[square[0]+forwardMoveAdd][square[1]+1]==1-player):
+					jumps = self.checkJump((square[0],square[1]), False, player)
+					if (hasJumps == False and len(jumps)>0):
+						# clearing out regular moves
+						legalMoves = []
+						hasJumps = True
+						legalMoves.extend(jumps)
+			
 		return legalMoves
 
 	# enemy is the square we plan to jump over
-	# change later to deal with double jumps
-	def checkJump(self, cell, isLeft, player):
+	def checkJump(self, square, isLeft, player):
 		jumps = []
-		next = -1 if player == 0 else 1
+		forwardMoveAdd = -1 if player == 0 else 1
 		# check boundaries!
-		if (cell[0]+next == 0 or cell[0]+next == BOARD_SIZE-1):
+		if (square[0]+forwardMoveAdd == 0 or square[0]+forwardMoveAdd == BOARD_SIZE-1):
 			return jumps
 		#check top left
 		if (isLeft):
-			if (cell[1]>1 and self.boardState[cell[0]+next+next][cell[1]-2]==-1):
-				temp = Move(cell, (cell[0]+next+next, cell[1]-2), True)
-				temp.jumpOver = [(cell[0]+next,cell[1]-1)]                   			
+			if (square[1]>1 and self.boardState[square[0]+forwardMoveAdd+forwardMoveAdd][square[1]-2]==-1):
+				temp = Move(square, (square[0]+forwardMoveAdd+forwardMoveAdd, square[1]-2), True)
+				temp.jumpOver = [(square[0]+forwardMoveAdd,square[1]-1)]                   			
 				jumps.append(temp)
 		else:
 		#check top right
-			if (cell[1]<BOARD_SIZE-2 and self.boardState[cell[0]+next+next][cell[1]+2]==-1):
-				# ([original cell, new cell], enemy cell])
-				temp = Move(cell, (cell[0]+next+next, cell[1]+2), True)
-				temp.jumpOver = [(cell[0]+next,cell[1]+1)]                  			
+			if (square[1]<BOARD_SIZE-2 and self.boardState[square[0]+forwardMoveAdd+forwardMoveAdd][square[1]+2]==-1):
+				# ([original square, new square], enemy square])
+				temp = Move(square, (square[0]+forwardMoveAdd+forwardMoveAdd, square[1]+2), True)
+				temp.jumpOver = [(square[0]+forwardMoveAdd,square[1]+1)]                  			
 				jumps.append(temp)                
 		return jumps
 
