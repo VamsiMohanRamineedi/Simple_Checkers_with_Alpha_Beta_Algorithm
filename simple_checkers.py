@@ -126,7 +126,7 @@ class Checkers:
 		''' Returns the object of AB_value class having maximum value(v) and the associated action(action)'''
 
 		# v <- -inf
-		# self, move_value, move, max_depth, total_nodes, max_cutoff, min_cutoff
+		# self, v, action, max_depth, total_nodes, max_cutoff, min_cutoff
 		ab = AB_Value(-1000, None, node, 1, 0, 0)
 
 		# if TERMINAL-TEST(state) then return utility(state)
@@ -140,20 +140,18 @@ class Checkers:
 		# depth cutoff
 		if (node == self.depth_limit):
 			ab.v = self.evaluation_function(state.board, state.origPlayer)
-			#print("Depth Cutoff. Eval value: "+str(v.move_value))
 			return ab    
 		
 		for a in actions:
 			newState = AB_State(deepcopy(state.board), 1-state.player, state.origPlayer)
-			# outputOfAction(s,a)
+			# RESULT(s,a)
 			newState.board.boardMove(a, state.player)
 			new_ab = self.min_value(newState, alpha, beta, node+1)
 			# compute new values for nodes and cutoffs in recursion
-			if (new_ab.max_depth > ab.max_depth):
-				ab.max_depth = new_ab.max_depth         
-			ab.nodes += new_ab.nodes
-			ab.max_cutoff += new_ab.max_cutoff
+			ab.max_depth = max(new_ab.max_depth, ab.max_depth)        
 			ab.min_cutoff += new_ab.min_cutoff
+			ab.max_cutoff += new_ab.max_cutoff
+			ab.nodes += new_ab.nodes
 			# v <- Max(v, MIN_VALUE(outputOfAction(s,a), alpha, beta))
 			if (new_ab.v > ab.v):
 				ab.v = new_ab.v
@@ -161,57 +159,52 @@ class Checkers:
 			if (ab.v >= beta):
 				ab.max_cutoff += 1
 				return ab
-			if (ab.v > alpha):
-				alpha = ab.v
+			alpha = max(ab.v, alpha)
 		if ab.action == None:
 			ab.action = np.random.choice(actions)
 		return ab
 
 	# returns min value
 	def min_value(self, state, alpha, beta, node):
+	''' Returns the object of AB_value class having minimum value(v) and the associated action(action)'''
+
 		# v.move_value <- inf
-		# self, move_value, move, max_depth, total_nodes, max_cutoff, min_cutoff
-		v = AB_Value(1000, None, node, 1, 0, 0)
+		# self, v, action, max_depth, total_nodes, max_cutoff, min_cutoff
+		ab = AB_Value(1000, None, node, 1, 0, 0)
 
 		# if TERMINAL-TEST(state) then return utility(state)
 		actions = state.board.legalMoves(state.player)
 		num_act = len(actions)
 		if (num_act==0): 
-			v.move_value = self.utility(state.board)
-			return v 
+			ab.v = self.utility(state.board)
+			return ab 
       
         # depth cutoff
 		if (node == self.depth_limit):
-			v.move_value = self.evaluation_function(state.board, state.player)
-			#print("Depth Cutoff. Eval value: "+str(v.move_value))
-			return v
+			ab.v = self.evaluation_function(state.board, state.player)
+			return ab
 
 		for a in actions:
 			newState = AB_State(deepcopy(state.board), 1-state.player, state.origPlayer)
-			#eval = self.evaluation_function(self.board, self.turn)
-         	#print("Current Evaluation: "+str(eval))
-			# outputOfAction(s,a)
+			# RESULT(s,a)
 			newState.board.boardMove(a, state.player)
-			new_v = self.max_value(newState, alpha, beta, node+1)
+			new_ab = self.max_value(newState, alpha, beta, node+1)
 			# compute new values for nodes and cutoffs in recursion
-			if (new_v.max_depth > v.max_depth):
-				v.max_depth = new_v.max_depth
-			v.nodes += new_v.nodes
-			v.max_cutoff += new_v.max_cutoff
-			v.min_cutoff += new_v.min_cutoff
+			ab.nodes += new_ab.nodes
+			ab.max_depth = max(new_ab.max_depth, ab.max_depth)
+			ab.max_cutoff += new_ab.max_cutoff
+			ab.min_cutoff += new_ab.min_cutoff
 			# v <- Min(v, MAX_VALUE(outputOfAction(s,a), alpha, beta))
-			if (new_v.move_value < v.move_value):
-				v.move_value = new_v.move_value
-				v.move = a
-			if (v.move_value <= alpha):
-				v.min_cutoff += 1
-				return v
-			if (v.move_value < beta):
-				beta = v.move_value
-			#v.move = a
-		if v.move == None:
-			v.move = np.random.choice(actions) 
-		return v
+			if (new_ab.v < ab.v):
+				ab.v = new_ab.v
+				ab.action = a
+			if (ab.v <= alpha):
+				ab.min_cutoff += 1
+				return ab
+			beta = min(ab.v, beta)
+		if ab.action == None:
+			ab.action = np.random.choice(actions) 
+		return ab
 
 	def evaluation_function(self, board, currPlayer):
 		''' Returns a utility value for non-terminal node'''
