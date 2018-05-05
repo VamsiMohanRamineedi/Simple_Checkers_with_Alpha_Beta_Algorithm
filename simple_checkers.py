@@ -15,7 +15,7 @@ class Checkers:
 		self.depth_limit = depth_limit
 	def play(self):
 		while (self.isGameOver(self.board)) == False: # checking if game is still alive
-			self.board.drawBoardState()
+			self.board.showBoard()
 			print("Current Player: "+PLAYERS[self.turn])
 			# Human's turn
 			if (self.turn == 0):
@@ -45,7 +45,7 @@ class Checkers:
 				self.turn = 1
 			else:
 				self.turn = 0
-		self.board.drawBoardState()
+		self.board.showBoard()
 		print("------------------- Game OVER ---------------------- \n")
 		print("Your pieces remained on the board = "+str(self.leftOnBoard[0]))
 		print("Computer pieces remained on the board = "+str(self.leftOnBoard[1]))
@@ -297,8 +297,8 @@ class Board:
 	def __init__(self, board=[], currBlack=[], currWhite=[]):
 		self.boardState = board if board!=[] else self.setDefaultBoard()
 		self.currPos = [[],[]]
-		self.currPos[0] = currBlack if currBlack != [] else self.calcPos(0)
-		self.currPos[1] = currWhite if currWhite != [] else self.calcPos(1)
+		self.currPos[0] = currBlack if currBlack != [] else self.calculatePositions(0)
+		self.currPos[1] = currWhite if currWhite != [] else self.calculatePositions(1)
 		            
 	def moveFromTo(self, start_end_info, currPlayer):
 		jump = start_end_info.jump      
@@ -311,8 +311,8 @@ class Board:
 			for enemy in start_end_info.jumpOver:
 				self.boardState[enemy[0]][enemy[1]] = -1 # remove the pieces that got jumped over
 			# calculating the black and white positions since jump can alter many positions
-			self.currPos[1] = self.calcPos(1)
-			self.currPos[0] = self.calcPos(0)
+			self.currPos[1] = self.calculatePositions(1)
+			self.currPos[0] = self.calculatePositions(0)
 		else:
 			# otherwise just set the positions according to the changes
 			self.currPos[currPlayer].remove((move[0][0], move[0][1]))
@@ -395,22 +395,24 @@ class Board:
 				temp = Move(square, (square[0]+forwardMoveAdd+forwardMoveAdd, square[1]-2), True)
 				temp.jumpOver = [(square[0]+forwardMoveAdd,square[1]-1)]                   			
 				jumpsAvailable.append(temp)
-            
+
 		return jumpsAvailable
 
-	def calcPos(self, player):
-		pos = []
-		#pieces = 0
-		for row in range(BOARD_SIZE):
-			for col in range(BOARD_SIZE):
+	def calculatePositions(self, player):
+		''' Returns the (row,col) positions as a list of a particular player '''
+		playerPositions = []
+		for col in range(BOARD_SIZE):
+			for row in range(BOARD_SIZE):
 				if (self.boardState[row][col]==player):
-					pos.append((row,col))
-		return pos
+					playerPositions.append((row,col))
+		return playerPositions
 
-	def drawBoardState(self):
+	def showBoard(self):
+		''' Prints the current positions on the board'''
+
 		print('\n')
-		for colnum in range(BOARD_SIZE):
-			print(str(colnum)+" ",end="")
+		for col in range(BOARD_SIZE):
+			print(str(col)+" ",end="")
 		print("")
 		for row in range(BOARD_SIZE):
 			for col in range(BOARD_SIZE):
