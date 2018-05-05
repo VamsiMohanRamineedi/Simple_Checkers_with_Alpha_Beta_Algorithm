@@ -4,92 +4,94 @@ import numpy as np
 
 BOARD_SIZE = 6
 NUM_OF_PIECES = 6
-#DEPTH_LIMIT = 12
-
 PLAYERS = ["Black", "White"]
 
 class Checkers:
-	def __init__(self, player=0, difficulty = 1, depth_limit=4):
+	def __init__(self, turn=0, difficulty = 1, depth_limit=4):
 		self.board = Board() # creates a board with given board_size and number of black and white pieces
-		self.remaining = [NUM_OF_PIECES, NUM_OF_PIECES] # shows the remaining pieces on the board in the order [black,white]
-		self.turn = player # maintains the state of player's turn
+		self.turn = turn # maintains the state of player's turn
 		self.difficulty = difficulty
+		self.leftOnBoard = [NUM_OF_PIECES, NUM_OF_PIECES] # shows the remaining pieces on the board in the order [black,white]
 		self.depth_limit = depth_limit
 	def play(self):
-		while not (self.isGameOver(self.board)):
+		while (self.isGameOver(self.board)) == False: # checking if game is still alive
 			self.board.drawBoardState()
 			print("Current Player: "+PLAYERS[self.turn])
 			# Human's turn
 			if (self.turn == 0):
-				# get player's move
-				legal = self.board.calcLegalMoves(self.turn)
-				if (len(legal) > 0):
-					move = self.getMove(legal)
-					self.makeMove(move)
+				# calculate legal moves
+				legal = self.board.legalMoves(self.turn)
+				if (len(legal) == 0):
+					print("No legal moves available, forfeitting your turn")
 				else:
-					print("No legal moves available, forfeitting your turn...")
+					move = self.pickAMove(legal)
+					self.makeAMove(move)
 			# Computer's turn
 			else:
-				legal = self.board.calcLegalMoves(self.turn)
-				if (len(legal)>0):
-					# no need for AI if there's only one choice!
-					if (len(legal)==1):
+				legal = self.board.legalMoves(self.turn)
+				if (len(legal) == 0):
+					print("No legal moves available, forfeitting Computer's turn")
+				elif (len(legal)>0):
+					if (len(legal)==1): # if only 1 legal move is available, it has to be picked for sure.
 						choice = legal[0]
 					else:
 						state = AB_State(self.board, self.turn, self.turn)
 						choice = self.alpha_beta(state)
-					self.makeMove(choice)
+					self.makeAMove(choice)
 					print("Computer chooses ("+str(choice.start)+", "+str(choice.end)+")")
-				else:
-					print("No legal moves available, forfeitting Computer's turn...")
+					
 			# changing player's turn
-			self.turn = 1-self.turn
+			if self.turn == 0:
+				self.turn = 1
+			else:
+				self.turn = 0
 		self.board.drawBoardState()
 		print("------------------- Game OVER ---------------------- \n")
-		print("Your pieces remained on the board = "+str(self.remaining[0]))
-		print("Computer pieces remained on the board = "+str(self.remaining[1]))
+		print("Your pieces remained on the board = "+str(self.leftOnBoard[0]))
+		print("Computer pieces remained on the board = "+str(self.leftOnBoard[1]))
 		print('\n')
-		if (self.remaining[1] > self.remaining[0]):
+		if (self.leftOnBoard[1] > self.leftOnBoard[0]):
 			print("Computer wins!")
-		elif (self.remaining[0] > self.remaining[1]):
-			print("You win!")
+		elif (self.leftOnBoard[0] > self.leftOnBoard[1]):
+			print("You win! \n")
 		else:
 			print("It's a draw!")
 
-	def makeMove(self, move):
+	def makeAMove(self, move):
 		self.board.boardMove(move, self.turn)
 		if move.jump:
-			# decrement removed pieces after jump
-			self.remaining[1-self.turn] -= len(move.jumpOver)
+			self.leftOnBoard[1-self.turn] -= len(move.jumpOver) # decrease pieces leftOnBoard counter after removing a piece
 			print("Removed "+str(len(move.jumpOver))+" "+PLAYERS[1-self.turn]+" pieces")
 
-	def getMove(self, legal):
-		move = -1
-		# repeats until player picks move on the list
-		while move not in range(len(legal)):
-			# List valid moves:
-			print("Valid Moves: ")
+	def pickAMove(self, legal):
+		'''Returns a move picked by the player'''
+		pick = -1
+		while pick not in range(len(legal)): # repeats until player picks move on the list
+			print("Legal moves available: ")
 			print('\n')
-			for i in range(len(legal)):
+			for i in range(0,len(legal)):
 				print(str(i+1)+": ",end='')
 				print(str(legal[i].start)+" "+str(legal[i].end))
 			print('\n')
-			print('The displayed moves are in the form (row, col)')
-			usr_input = input("Pick a move: ")
-			# stops error caused when user inputs nothing
-			move = -1 if (usr_input == '')  else (int(usr_input)-1)
-			if move not in range(len(legal)):
-				print("Illegal move")
-		print("Legal move")
-		return (legal[move])
+			print('The displayed moves are in the form (row#, col#)')
+			selectedMove = input("Pick a move: ")
+			if (selectedMove == ''): 
+				pick = -1 
+			else:
+				pick = (int(selectedMove)-1)
+			if pick not in range(0,len(legal)):
+				print("Invalid move selected. Choose from the available moves")
+		return (legal[pick])
 
-	# returns a boolean value determining if game finished
 	def isGameOver(self, board):
 		'''Returns True if all pieces of a player are captured or if there are no legal moves available'''
 
-		if (len(board.currPos[1]) == 0 or len(board.currPos[0]) == 0): # All pieces of any player captured
+		countOfBlacks = len(board.currPos[0])
+		countOfWhites = len(board.currPos[1])
+
+		if (countOfWhites == 0 or countOfBlacks == 0): # All pieces of any player captured
 			return True
-		elif (len(board.calcLegalMoves(1)) == 0 and len(board.calcLegalMoves(0)) == 0): # No legal moves available
+		elif (len(board.legalMoves(1)) == 0 and len(board.legalMoves(0)) == 0): # No legal moves available
 			return True
 		else:
 			return False
@@ -97,69 +99,73 @@ class Checkers:
 	def utility(self, board):
 		''' Returns the utility value for a terminal node'''
 
+		countOfBlacks = len(board.currPos[0])
+		countOfWhites = len(board.currPos[1])
+		
 		# white wins, return utility value of +1000
-		if len(board.currPos[1]) > len(board.currPos[0]):
+		if countOfWhites > countOfBlacks:
 			return 1000
 		# black wins, return utility value of -1000
-		elif len(board.currPos[0]) > len(board.currPos[1]):
+		elif countOfBlacks > countOfWhites:
 			return -1000
 		# game is a draw
 		else:
 			return 0
 
-	# state = board, player
 	def alpha_beta(self, state):
-		result = self.max_value(state, -1000, 1000, 0)
-		print("Total nodes generated: "+str(result.nodes))
-		print("Max depth: "+str(result.max_depth))
-		print("Max Val Cutoffs: "+str(result.max_cutoff))
-		print("Min Val Cutoffs: "+str(result.min_cutoff))
-		return result.move
+		''' Returns the best action'''
 
-	# returns max value and action associated with value
+		outputOfAction = self.max_value(state, -1000, 1000, 0)
+		print("Max depth: "+str(outputOfAction.max_depth))
+		print("Total nodes generated: "+str(outputOfAction.nodes))
+		print("#Pruning in minvalue function: "+str(outputOfAction.min_cutoff))
+		print("#Pruning in maxvalue function: "+str(outputOfAction.max_cutoff))
+		return outputOfAction.action
+
 	def max_value(self, state, alpha, beta, node):
-		
+		''' Returns the object of AB_value class having maximum value(v) and the associated action(action)'''
+
 		# v <- -inf
 		# self, move_value, move, max_depth, total_nodes, max_cutoff, min_cutoff
-		v = AB_Value(-1000, None, node, 1, 0, 0)
+		ab = AB_Value(-1000, None, node, 1, 0, 0)
 
 		# if TERMINAL-TEST(state) then return utility(state)
-		actions = state.board.calcLegalMoves(state.player)
+		actions = state.board.legalMoves(state.player)
 		num_act = len(actions)
 
 		if (num_act==0): 
-			v.move_value = self.utility(state.board)
-			return v 
+			ab.v = self.utility(state.board)
+			return ab
 
 		# depth cutoff
 		if (node == self.depth_limit):
-			v.move_value = self.evaluation_function(state.board, state.origPlayer)
+			ab.v = self.evaluation_function(state.board, state.origPlayer)
 			#print("Depth Cutoff. Eval value: "+str(v.move_value))
-			return v      
+			return ab    
 		
 		for a in actions:
 			newState = AB_State(deepcopy(state.board), 1-state.player, state.origPlayer)
-			# RESULT(s,a)
+			# outputOfAction(s,a)
 			newState.board.boardMove(a, state.player)
-			new_v = self.min_value(newState, alpha, beta, node+1)
+			new_ab = self.min_value(newState, alpha, beta, node+1)
 			# compute new values for nodes and cutoffs in recursion
-			if (new_v.max_depth > v.max_depth):
-				v.max_depth = new_v.max_depth         
-			v.nodes += new_v.nodes
-			v.max_cutoff += new_v.max_cutoff
-			v.min_cutoff += new_v.min_cutoff
-			# v <- Max(v, MIN_VALUE(RESULT(s,a), alpha, beta))
-			if (new_v.move_value > v.move_value):
-				v.move_value = new_v.move_value
-				v.move = a
-			if (v.move_value >= beta):
-				v.max_cutoff += 1
-				return v
-			if (v.move_value > alpha):
-				alpha = v.move_value
-		if v.move == None:
-			v.move = np.random.choice(actions)
-		return v
+			if (new_ab.max_depth > ab.max_depth):
+				ab.max_depth = new_ab.max_depth         
+			ab.nodes += new_ab.nodes
+			ab.max_cutoff += new_ab.max_cutoff
+			ab.min_cutoff += new_ab.min_cutoff
+			# v <- Max(v, MIN_VALUE(outputOfAction(s,a), alpha, beta))
+			if (new_ab.v > ab.v):
+				ab.v = new_ab.v
+				ab.action = a
+			if (ab.v >= beta):
+				ab.max_cutoff += 1
+				return ab
+			if (ab.v > alpha):
+				alpha = ab.v
+		if ab.action == None:
+			ab.action = np.random.choice(actions)
+		return ab
 
 	# returns min value
 	def min_value(self, state, alpha, beta, node):
@@ -168,7 +174,7 @@ class Checkers:
 		v = AB_Value(1000, None, node, 1, 0, 0)
 
 		# if TERMINAL-TEST(state) then return utility(state)
-		actions = state.board.calcLegalMoves(state.player)
+		actions = state.board.legalMoves(state.player)
 		num_act = len(actions)
 		if (num_act==0): 
 			v.move_value = self.utility(state.board)
@@ -184,7 +190,7 @@ class Checkers:
 			newState = AB_State(deepcopy(state.board), 1-state.player, state.origPlayer)
 			#eval = self.evaluation_function(self.board, self.turn)
          	#print("Current Evaluation: "+str(eval))
-			# RESULT(s,a)
+			# outputOfAction(s,a)
 			newState.board.boardMove(a, state.player)
 			new_v = self.max_value(newState, alpha, beta, node+1)
 			# compute new values for nodes and cutoffs in recursion
@@ -193,7 +199,7 @@ class Checkers:
 			v.nodes += new_v.nodes
 			v.max_cutoff += new_v.max_cutoff
 			v.min_cutoff += new_v.min_cutoff
-			# v <- Min(v, MAX_VALUE(RESULT(s,a), alpha, beta))
+			# v <- Min(v, MAX_VALUE(outputOfAction(s,a), alpha, beta))
 			if (new_v.move_value < v.move_value):
 				v.move_value = new_v.move_value
 				v.move = a
@@ -268,16 +274,16 @@ class Checkers:
 				#print('Score = ',-random_eval_score)
 				return -random_eval_score    
 
-# wrapper for alpha-beta info
-# v = [move_value, move, max tree depth, # child nodes, # max/beta cutoff, # min/alpha cutoff]
 class AB_Value:
-	def __init__(self, move_value, move, max_depth, child_nodes, max_cutoff, min_cutoff):
-		self.move_value = move_value
-		self.move = move
+	''' Maintains the alpha beta related properties'''
+
+	def __init__(self, v, action, max_depth, child_nodes, max_cutoff, min_cutoff):
+		self.action = action
 		self.max_depth = max_depth
-		self.nodes = child_nodes
 		self.max_cutoff = max_cutoff
 		self.min_cutoff = min_cutoff
+		self.nodes = child_nodes
+		self.v = v
 
 
 # wrapper for state used in alpha-beta
@@ -334,7 +340,7 @@ class Board:
 			self.currPos[currPlayer].append((move[1][0], move[1][1]))
 		#print(self.currPos[currPlayer])
 
-	def calcLegalMoves(self, player): # int array  -> [0] reg, [1] jump
+	def legalMoves(self, player): # int array  -> [0] reg, [1] jump
 		legalMoves = []
 		hasJumps = False
 		# next goes up if black or down if white
@@ -433,6 +439,7 @@ class Board:
 			[0,-1,0,-1,0,-1]]
 
 def main():
+	#Select difficulty
 	print('Select Difficulty Level: For Easy mode, press 1. For Normal mode, press 2. For Hard mode, press 3.')
 	difficulty = int(input('Enter 1, 2 or 3: '))
 	while not(difficulty == 1 or difficulty == 2 or difficulty == 3):
@@ -443,6 +450,8 @@ def main():
 		depth_limit = 8
 	else:
 		depth_limit = 12
+
+	#Select if you want to move first or second
 	print('You are Black. Do you want to move first? Press Y for Yes (or) N for No.')
 	first_player = (input("Enter Y or N:"))
 	while not (first_player == 'Y' or first_player == 'y' or first_player == 'N' or first_player == 'n'):
