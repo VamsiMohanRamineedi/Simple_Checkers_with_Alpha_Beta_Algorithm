@@ -60,8 +60,8 @@ class Checkers:
 	def makeAMove(self, move):
 		self.board.moveFromTo(move, self.turn)
 		if move.jump:
-			self.leftOnBoard[1-self.turn] -= len(move.jumpOver) # decrease pieces leftOnBoard counter after removing a piece
-			print("Removed "+str(len(move.jumpOver))+" "+PLAYERS[1-self.turn]+" pieces")
+			self.leftOnBoard[1-self.turn] -= len(move.jumpedOver) # decrease pieces leftOnBoard counter after removing a piece
+			print("Removed "+str(len(move.jumpedOver))+" "+PLAYERS[1-self.turn]+" pieces")
 
 	def pickAMove(self, legal):
 		'''Returns a move picked by the player'''
@@ -279,20 +279,21 @@ class AB_Value:
 		self.v = v
 
 
-# wrapper for state used in alpha-beta
 class AB_State:
+	''' Wrapper for state used in alpha-beta'''
 	def __init__(self, boardState, currPlayer, originalPlayer):
 		self.board = boardState
 		self.player = currPlayer
 		self.origPlayer = originalPlayer
 
 class Move:
-	def __init__(self, start, end, jump=False):
-		self.start = start
-		self.end = end # tuple (row, col)
-		self.jump = jump # bool
-		self.jumpOver = [] # array of pieces jumped over
-
+	''' Maintains the start, end squares of each move'''
+	def __init__(self, start_square, end_square, jump=False):
+		self.jumpedOver = [] # array of pieces jumped over
+		self.jump = jump # True or False
+		self.start = start_square # (row,col) tuple of square
+		self.end = end_square # (row,col) tuple of square
+		
 class Board:
 	def __init__(self, board=[], currBlack=[], currWhite=[]):
 		if (board!=[]):
@@ -300,32 +301,46 @@ class Board:
 		else:
 			self.setDefaultBoard()
 		self.currPos = [[],[]]
-		if (currBlack != []):
-			self.currPos[0] = currBlack
-		else:
-			self.currPos[0] = self.calculatePositions(0)
-		if (currWhite != []):
-			self.currPos[1] = currWhite
-		else:
-			self.currPos[1] = self.calculatePositions(1)
-		            
-	def moveFromTo(self, start_end_info, currPlayer):
-		jump = start_end_info.jump      
-		move = [start_end_info.start, start_end_info.end]
-		remove = start_end_info.jumpOver
-		
-		self.boardState[move[0][0]][move[0][1]] = -1 # emptying the old space
-		self.boardState[move[1][0]][move[1][1]] = currPlayer # allot the new space to the player who moved
-		if jump:
-			for enemy in start_end_info.jumpOver:
-				self.boardState[enemy[0]][enemy[1]] = -1 # remove the pieces that got jumped over
-			# calculating the black and white positions since jump can alter many positions
-			self.currPos[1] = self.calculatePositions(1)
-			self.currPos[0] = self.calculatePositions(0)
-		else:
-			# otherwise just set the positions according to the changes
-			self.currPos[currPlayer].remove((move[0][0], move[0][1]))
-			self.currPos[currPlayer].append((move[1][0], move[1][1]))
+		self.currPos[0] = currBlack if (currBlack != []) else self.calculatePositions(0)
+		self.currPos[1] = currWhite if (currWhite != []) else self.calculatePositions(1)
+
+	def setDefaultBoard(self):
+		''' Resets the board to initial position '''
+
+		# -1 = empty, 0=black, 1=white
+		self.boardState = [[-1,1,-1,1,-1,1],
+			[1,-1,1,-1,1,-1],
+			[-1,-1,-1,-1,-1,-1],
+			[-1,-1,-1,-1,-1,-1],
+			[-1,0,-1,0,-1,0],
+			[0,-1,0,-1,0,-1]]
+
+	def showBoard(self):
+		''' Prints the current positions on the board'''
+
+		print('\n')
+		for col in range(BOARD_SIZE):
+			print(str(col)+" ",end='')
+		print("")
+		for row in range(BOARD_SIZE):
+			for col in range(BOARD_SIZE):
+				if (self.boardState[row][col] == 0):
+					print("B ",end='')
+				elif (self.boardState[row][col] == -1):
+					print("_ ",end='')
+				elif (self.boardState[row][col] == 1):
+					print("W ",end='')
+			print(str(row))
+		print('\n')
+
+	def calculatePositions(self, player):
+		''' Returns the (row,col) positions as a list of a particular player '''
+		playerPositions = []
+		for col in range(BOARD_SIZE):
+			for row in range(BOARD_SIZE):
+				if (self.boardState[row][col]==player):
+					playerPositions.append((row,col))
+		return playerPositions
 
 	def legalMoves(self, player): 
 		''' Returns the legal moves available'''
@@ -352,7 +367,7 @@ class Board:
 					legalMoves.append(temp)
 				# capture move                    
 				elif(self.boardState[square[0]+forwardMoveAdd][square[1]-1]==1-player):
-					jumpsAvailable = self.arejumpsAvailableAvailable((square[0],square[1]), False, player)
+					jumpsAvailable = self.areJumpsAvailable((square[0],square[1]), False, player)
 					if (hasjumpsAvailable == False and len(jumpsAvailable)>0):
 						# clearing out regular moves
 						legalMoves = []          
@@ -367,7 +382,7 @@ class Board:
 					legalMoves.append(temp)
 				# capture move
 				elif(self.boardState[square[0]+forwardMoveAdd][square[1]+1]==1-player):
-					jumpsAvailable = self.arejumpsAvailableAvailable((square[0],square[1]), True, player)
+					jumpsAvailable = self.areJumpsAvailable((square[0],square[1]), True, player)
 					if (hasjumpsAvailable == False and len(jumpsAvailable)>0):
 						# clearing out regular moves
 						legalMoves = []
@@ -376,8 +391,7 @@ class Board:
 			
 		return legalMoves
 
-	# enemy is the square we plan to jump over
-	def arejumpsAvailableAvailable(self, square, isRight, player):
+	def areJumpsAvailable(self, square, isRight, player):
 		''' Returns all the available jumps'''
 
 		jumpsAvailable = []
@@ -395,55 +409,38 @@ class Board:
 			if (square[1]<BOARD_SIZE-2 and self.boardState[square[0]+forwardMoveAdd+forwardMoveAdd][square[1]+2]==-1):
 				# ([original square, new square], enemy square])
 				temp = Move(square, (square[0]+forwardMoveAdd+forwardMoveAdd, square[1]+2), True)
-				temp.jumpOver = [(square[0]+forwardMoveAdd,square[1]+1)]                  			
+				temp.jumpedOver = [(square[0]+forwardMoveAdd,square[1]+1)]                  			
 				jumpsAvailable.append(temp) 
 			
 		else:
 		#check top left
 			if (square[1]>1 and self.boardState[square[0]+forwardMoveAdd+forwardMoveAdd][square[1]-2]==-1):
 				temp = Move(square, (square[0]+forwardMoveAdd+forwardMoveAdd, square[1]-2), True)
-				temp.jumpOver = [(square[0]+forwardMoveAdd,square[1]-1)]                   			
+				temp.jumpedOver = [(square[0]+forwardMoveAdd,square[1]-1)]                   			
 				jumpsAvailable.append(temp)
 
 		return jumpsAvailable
+		            
+	def moveFromTo(self, start_end_info, currPlayer):
+		''' Moves a piece from one square to other '''
+		jump = start_end_info.jump      
+		move = [start_end_info.start, start_end_info.end]
+		remove = start_end_info.jumpedOver
+		
+		self.boardState[move[0][0]][move[0][1]] = -1 # emptying the old space
+		self.boardState[move[1][0]][move[1][1]] = currPlayer # allot the new space to the player who moved
+		if jump:
+			for enemy in start_end_info.jumpedOver:
+				self.boardState[enemy[0]][enemy[1]] = -1 # remove the pieces that got jumped over
+			# calculating the black and white positions since jump can alter many positions
+			self.currPos[1] = self.calculatePositions(1)
+			self.currPos[0] = self.calculatePositions(0)
+		else:
+			# otherwise just set the positions according to the changes
+			self.currPos[currPlayer].remove((move[0][0], move[0][1]))
+			self.currPos[currPlayer].append((move[1][0], move[1][1]))
 
-	def calculatePositions(self, player):
-		''' Returns the (row,col) positions as a list of a particular player '''
-		playerPositions = []
-		for col in range(BOARD_SIZE):
-			for row in range(BOARD_SIZE):
-				if (self.boardState[row][col]==player):
-					playerPositions.append((row,col))
-		return playerPositions
-
-	def showBoard(self):
-		''' Prints the current positions on the board'''
-
-		print('\n')
-		for col in range(BOARD_SIZE):
-			print(str(col)+" ",end='')
-		print("")
-		for row in range(BOARD_SIZE):
-			for col in range(BOARD_SIZE):
-				if (self.boardState[row][col] == 0):
-					print("B ",end='')
-				elif (self.boardState[row][col] == -1):
-					print("_ ",end='')
-				elif (self.boardState[row][col] == 1):
-					print("W ",end='')
-			print(str(row))
-		print('\n')
-
-	def setDefaultBoard(self):
-		''' Resets the board to initial position '''
-
-		# -1 = empty, 0=black, 1=white
-		self.boardState = [[-1,1,-1,1,-1,1],
-			[1,-1,1,-1,1,-1],
-			[-1,-1,-1,-1,-1,-1],
-			[-1,-1,-1,-1,-1,-1],
-			[-1,0,-1,0,-1,0],
-			[0,-1,0,-1,0,-1]]
+		return 0
 
 def main():
 	#Select difficulty
@@ -454,9 +451,9 @@ def main():
 	if difficulty == 1:
 		depth_limit = 4
 	elif difficulty == 2:
-		depth_limit = 8
+		depth_limit = 10
 	else:
-		depth_limit = 12
+		depth_limit = 14
 
 	#Select if you want to move first or second
 	print('You are Black. Do you want to move first? Press Y for Yes (or) N for No.')
