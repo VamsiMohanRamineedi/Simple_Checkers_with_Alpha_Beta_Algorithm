@@ -295,19 +295,11 @@ class Move:
 
 class Board:
 	def __init__(self, board=[], currBlack=[], currWhite=[]):
-		if (board!=[]):
-			self.boardState = board     
-		else:
-			self.setDefaultBoard()
+		self.boardState = board if board!=[] else self.setDefaultBoard()
 		self.currPos = [[],[]]
-		if (currBlack != []):
-			self.currPos[0] = currBlack
-		else:
-			self.currPos[0] = self.calcPos(0)
-		if (currWhite != []):
-			self.currPos[1] = currWhite
-		else:
-			self.currPos[1] = self.calcPos(1)            
+		self.currPos[0] = currBlack if currBlack != [] else self.calcPos(0)
+		self.currPos[1] = currWhite if currWhite != [] else self.calcPos(1)
+		            
 	def boardMove(self, move_info, currPlayer):
 		move = [move_info.start, move_info.end]
 		#print(move)
