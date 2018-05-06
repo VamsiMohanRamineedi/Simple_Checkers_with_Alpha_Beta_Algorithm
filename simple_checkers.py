@@ -7,16 +7,16 @@ NUM_OF_PIECES = 6
 PLAYERS = ["Black", "White"]
 
 class Board:
-	def __init__(self, board=[], currBlack=[], currWhite=[]):
-		if (board!=[]):
-			self.boardState = board     
+	def __init__(self, board=[], blackPositions=[], whitePositions=[]):
+		if (board==[]):
+			self.defaultBoard()     
 		else:
-			self.setDefaultBoard()
+			self.boardState = board
 		self.currPos = [[],[]]
-		self.currPos[0] = currBlack if (currBlack != []) else self.calculatePositions(0)
-		self.currPos[1] = currWhite if (currWhite != []) else self.calculatePositions(1)
+		self.currPos[1] = whitePositions if (whitePositions != []) else self.calculatePositions(1)
+		self.currPos[0] = blackPositions if (blackPositions != []) else self.calculatePositions(0)
 
-	def setDefaultBoard(self):
+	def defaultBoard(self):
 		''' Resets the board to initial position '''
 
 		# -1 = empty, 0=black, 1=white
@@ -80,10 +80,10 @@ class Board:
 				# capture move                    
 				elif(self.boardState[square[0]+forwardMoveAdd][square[1]-1]==1-player):
 					jumpsAvailable = self.areJumpsAvailable((square[0],square[1]), False, player)
-					if (hasjumpsAvailable == False and len(jumpsAvailable)>0):
-						# clearing out regular moves
-						legalMoves = []          
-						hasjumpsAvailable = True
+					if (len(jumpsAvailable)>0):
+						if hasjumpsAvailable == False: # clearing out regular moves in the first jump
+							legalMoves = []          
+							hasjumpsAvailable = True
 						legalMoves.extend(jumpsAvailable)
 
 			# diagonal right, only search if not at right edge of board
@@ -95,10 +95,10 @@ class Board:
 				# capture move
 				elif(self.boardState[square[0]+forwardMoveAdd][square[1]+1]==1-player):
 					jumpsAvailable = self.areJumpsAvailable((square[0],square[1]), True, player)
-					if (hasjumpsAvailable == False and len(jumpsAvailable)>0):
-						# clearing out regular moves
-						legalMoves = []
-						hasjumpsAvailable = True
+					if (len(jumpsAvailable)>0):
+						if hasjumpsAvailable == False: # clearing out regular moves in the first jump
+							legalMoves = []
+							hasjumpsAvailable = True
 						legalMoves.extend(jumpsAvailable)
 			
 		return legalMoves
@@ -165,8 +165,23 @@ class Checkers:
 		while (self.isGameOver(self.board)) == False: # checking if game is still alive
 			self.board.showBoard()
 			print("Current Player: "+PLAYERS[self.turn])
+
+			# Computer's turn
+			if (self.turn == 1):
+				legal = self.board.legalMoves(self.turn) # calculate legal moves
+				if (len(legal) == 0):
+					print("No legal moves available, forfeitting Computer's turn")
+				elif (len(legal)>0):
+					if (len(legal)==1): # if only 1 legal move is available, it has to be picked for sure.
+						choice = legal[0]
+					else:
+						state = AB_Board_Player(self.board, self.turn, self.turn)
+						choice = self.alpha_beta_search(state)
+					self.makeAMove(choice)
+					print("Computer chooses ("+str(choice.start)+", "+str(choice.end)+")")
+
 			# Human's turn
-			if (self.turn == 0):
+			else:
 				# calculate legal moves
 				legal = self.board.legalMoves(self.turn)
 				if (len(legal) == 0):
@@ -174,19 +189,6 @@ class Checkers:
 				else:
 					move = self.pickAMove(legal)
 					self.makeAMove(move)
-			# Computer's turn
-			else:
-				legal = self.board.legalMoves(self.turn)
-				if (len(legal) == 0):
-					print("No legal moves available, forfeitting Computer's turn")
-				elif (len(legal)>0):
-					if (len(legal)==1): # if only 1 legal move is available, it has to be picked for sure.
-						choice = legal[0]
-					else:
-						state = AB_State(self.board, self.turn, self.turn)
-						choice = self.alpha_beta(state)
-					self.makeAMove(choice)
-					print("Computer chooses ("+str(choice.start)+", "+str(choice.end)+")")
 					
 			# changing player's turn
 			if self.turn == 0:
@@ -260,7 +262,7 @@ class Checkers:
 		else:
 			return 0
 
-	def alpha_beta(self, state):
+	def alpha_beta_search(self, state):
 		''' Returns the best action'''
 
 		outputOfAction = self.max_value(state, -1000, 1000, 0)
@@ -271,11 +273,11 @@ class Checkers:
 		return outputOfAction.action
 
 	def max_value(self, state, alpha, beta, node):
-		''' Returns the object of AB_value class having maximum value(v) and the associated action(action)'''
+		''' Returns the object of AB_Properties class having maximum value(v) and the associated action(action)'''
 
 		# v <- -inf
 		# self, v, action, max_depth, total_nodes, max_cutoff, min_cutoff
-		ab = AB_Value(-1000, None, node, 1, 0, 0)
+		ab = AB_Properties(-1000, None, node, 1, 0, 0)
 
 		# if TERMINAL-TEST(state) then return utility(state)
 		actions = state.board.legalMoves(state.player)
@@ -291,7 +293,7 @@ class Checkers:
 			return ab    
 		
 		for a in actions:
-			newState = AB_State(deepcopy(state.board), 1-state.player, state.origPlayer)
+			newState = AB_Board_Player(deepcopy(state.board), 1-state.player, state.origPlayer)
 			# RESULT(s,a)
 			newState.board.moveFromTo(a, state.player)
 			new_ab = self.min_value(newState, alpha, beta, node+1)
@@ -314,11 +316,11 @@ class Checkers:
 
 	# returns min value
 	def min_value(self, state, alpha, beta, node):
-		''' Returns the object of AB_value class having minimum value(v) and the associated action(action)'''
+		''' Returns the object of AB_Properties class having minimum value(v) and the associated action(action)'''
 
 		# v.move_value <- inf
 		# self, v, action, max_depth, total_nodes, max_cutoff, min_cutoff
-		ab = AB_Value(1000, None, node, 1, 0, 0)
+		ab = AB_Properties(1000, None, node, 1, 0, 0)
 
 		# if TERMINAL-TEST(state) then return utility(state)
 		actions = state.board.legalMoves(state.player)
@@ -333,7 +335,7 @@ class Checkers:
 			return ab
 
 		for a in actions:
-			newState = AB_State(deepcopy(state.board), 1-state.player, state.origPlayer)
+			newState = AB_Board_Player(deepcopy(state.board), 1-state.player, state.origPlayer)
 			# RESULT(s,a)
 			newState.board.moveFromTo(a, state.player)
 			new_ab = self.max_value(newState, alpha, beta, node+1)
@@ -415,7 +417,7 @@ class Checkers:
 				#print('Score = ',-random_eval_score)
 				return -random_eval_score    
 
-class AB_Value:
+class AB_Properties:
 	''' Maintains the alpha beta related properties'''
 
 	def __init__(self, v, action, max_depth, child_nodes, max_cutoff, min_cutoff):
@@ -427,12 +429,12 @@ class AB_Value:
 		self.v = v
 
 
-class AB_State:
+class AB_Board_Player:
 	''' Wrapper for state used in alpha-beta'''
 	def __init__(self, boardState, currPlayer, originalPlayer):
 		self.board = boardState
-		self.player = currPlayer
 		self.origPlayer = originalPlayer
+		self.player = currPlayer
 
 class Move:
 	''' Maintains the start, end squares of each move'''
@@ -454,7 +456,7 @@ def main():
 	elif difficulty == 2:
 		depth_limit = 10
 	else:
-		depth_limit = 14
+		depth_limit = 13
 
 	#Select if you want to move first or second
 	print('You are Black. Do you want to move first? Press Y for Yes (or) N for No.')
