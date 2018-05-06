@@ -3,7 +3,7 @@ from copy import deepcopy
 import numpy as np
 
 BOARD_SIZE = 6
-NUM_OF_PIECES = 6
+NUM_OF_PIECES = 6 # pieces of each color
 PLAYERS = ["Black", "White"]
 
 class Board:
@@ -37,16 +37,17 @@ class Board:
 		for row in range(BOARD_SIZE):
 			for col in range(BOARD_SIZE):
 				if (self.boardState[row][col] == 0):
-					print("B ",end='')
+					print("B ",end='') # represents a black piece
 				elif (self.boardState[row][col] == -1):
-					print("_ ",end='')
+					print("_ ",end='') # empty square
 				elif (self.boardState[row][col] == 1):
-					print("W ",end='')
+					print("W ",end='') # represents a white piece
 			print(str(row))
 		print('\n')
 
 	def calculatePositions(self, player):
 		''' Returns the (row,col) positions as a list of a particular player '''
+
 		playerPositions = []
 		for col in range(BOARD_SIZE):
 			for row in range(BOARD_SIZE):
@@ -71,12 +72,12 @@ class Board:
 
 			if (square[0] == boardEnd): # pieces cant be moved once they reach opponents end
 				continue
-			# diagonal left, only search if not at left edge of board
+			# diagonal left move, search only if not at left edge of board
 			if (square[1]!=0):
 				# regular move
 				if(hasjumpsAvailable == False and self.boardState[square[0]+forwardMoveAdd][square[1]-1]==-1):
-					temp = Move((square[0],square[1]),(square[0]+forwardMoveAdd,square[1]-1)) 
-					legalMoves.append(temp)
+					temp_move = Move((square[0],square[1]),(square[0]+forwardMoveAdd,square[1]-1)) 
+					legalMoves.append(temp_move)
 				# capture move                    
 				elif(self.boardState[square[0]+forwardMoveAdd][square[1]-1]==1-player):
 					jumpsAvailable = self.areJumpsAvailable((square[0],square[1]), False, player)
@@ -86,12 +87,12 @@ class Board:
 							hasjumpsAvailable = True
 						legalMoves.extend(jumpsAvailable)
 
-			# diagonal right, only search if not at right edge of board
+			# diagonal right move, search only if not at right edge of board
 			if (square[1]!=BOARD_SIZE-1):
 				# regular move
 				if (hasjumpsAvailable == False and self.boardState[square[0]+forwardMoveAdd][square[1]+1]==-1):
-					temp = Move((square[0],square[1]),(square[0]+forwardMoveAdd,square[1]+1)) 
-					legalMoves.append(temp)
+					temp_move = Move((square[0],square[1]),(square[0]+forwardMoveAdd,square[1]+1)) 
+					legalMoves.append(temp_move)
 				# capture move
 				elif(self.boardState[square[0]+forwardMoveAdd][square[1]+1]==1-player):
 					jumpsAvailable = self.areJumpsAvailable((square[0],square[1]), True, player)
@@ -107,6 +108,8 @@ class Board:
 		''' Returns all the available jumps'''
 
 		jumpsAvailable = []
+		# since white is in the upper half of the board(rows 0 and 1), their moves have to be towards rows 2,3,4 and 5. Similarly for blacks.
+
 		if player == 1:
 			forwardMoveAdd = 1
 		else:
@@ -116,25 +119,26 @@ class Board:
 		if (square[0]+forwardMoveAdd == 0 or square[0]+forwardMoveAdd == BOARD_SIZE-1):
 			return jumpsAvailable
 
-		#check top right
+		#check top right of jump
 		if (isRight):
 			if (square[1]<BOARD_SIZE-2 and self.boardState[square[0]+forwardMoveAdd+forwardMoveAdd][square[1]+2]==-1):
 				# ([original square, new square], enemy square])
-				temp = Move(square, (square[0]+forwardMoveAdd+forwardMoveAdd, square[1]+2), True)
-				temp.jumpedOver = [(square[0]+forwardMoveAdd,square[1]+1)]                  			
-				jumpsAvailable.append(temp) 
+				temp_move = Move(square, (square[0]+forwardMoveAdd+forwardMoveAdd, square[1]+2), True)
+				temp_move.jumpedOver = [(square[0]+forwardMoveAdd,square[1]+1)]                  			
+				jumpsAvailable.append(temp_move) 
 			
 		else:
-		#check top left
+		#check top left of jump
 			if (square[1]>1 and self.boardState[square[0]+forwardMoveAdd+forwardMoveAdd][square[1]-2]==-1):
-				temp = Move(square, (square[0]+forwardMoveAdd+forwardMoveAdd, square[1]-2), True)
-				temp.jumpedOver = [(square[0]+forwardMoveAdd,square[1]-1)]                   			
-				jumpsAvailable.append(temp)
+				temp_move = Move(square, (square[0]+forwardMoveAdd+forwardMoveAdd, square[1]-2), True)
+				temp_move.jumpedOver = [(square[0]+forwardMoveAdd,square[1]-1)]                   			
+				jumpsAvailable.append(temp_move)
 
 		return jumpsAvailable
 		            
 	def moveFromTo(self, start_end_info, currPlayer):
 		''' Moves a piece from one square to other '''
+
 		jump = start_end_info.jump      
 		move = [start_end_info.start, start_end_info.end]
 		remove = start_end_info.jumpedOver
@@ -208,6 +212,7 @@ class Checkers:
 			print("It's a draw!")
 
 	def makeAMove(self, move):
+		''' Moves from a position to a position and update the empty positions'''
 		self.board.moveFromTo(move, self.turn)
 		if move.jump:
 			self.leftOnBoard[1-self.turn] -= len(move.jumpedOver) # decrease pieces leftOnBoard counter after removing a piece
@@ -215,6 +220,7 @@ class Checkers:
 
 	def pickAMove(self, legal):
 		'''Returns a move picked by the player'''
+
 		pick = -1
 		while pick not in range(len(legal)): # repeats until player picks move on the list
 			print("Legal moves available: ")
@@ -359,10 +365,10 @@ class Checkers:
 	def evaluation_function(self, board, currPlayer):
 		''' Returns a utility value for non-terminal node'''
 
-		black_at_white_end = 0
-		black_at_white_half = 0
-		black_at_self_half = 0
-		white_at_black_end = 0
+		black_at_white_end = 0 # Count of blacks at whites' farther end
+		black_at_white_half = 0 # Count of blacks in whites' half of the board
+		black_at_self_half = 0 # Count of blacks in its half
+		white_at_black_end = 0 # Similar to the above definitions
 		white_at_black_half = 0
 		white_at_self_half = 0
 
@@ -395,11 +401,13 @@ class Checkers:
 		#print('random_score = '+str(random_score))
 
 		if (self.difficulty == 1):
+			# outputs randomly selected score
 			random_eval_score = np.random.choice(np_my_list,p=[0,1])
 			#print('Score = ',random_eval_score)
 			return random_eval_score
 
 		elif (self.difficulty == 2):
+			# outputs either random_score or eval_score with a probability of 0.5
 			random_eval_score = np.random.choice(np_my_list, p=[0.5,0.5])
 			if (currPlayer == 0):
 				#print('Score = ',random_eval_score)
@@ -409,6 +417,7 @@ class Checkers:
 				return -random_eval_score
 
 		else:
+			# outputs eval_score
 			random_eval_score = np.random.choice(np_my_list, p=[1,0])
 			if (currPlayer == 0):
 				#print('Score = ',random_eval_score)
@@ -422,11 +431,11 @@ class AB_Properties:
 
 	def __init__(self, v, action, max_depth, child_nodes, max_cutoff, min_cutoff):
 		self.action = action
-		self.max_depth = max_depth
-		self.max_cutoff = max_cutoff
+		self.max_depth = max_depth 
+		self.max_cutoff = max_cutoff # Counts of prunings in max-value func
 		self.min_cutoff = min_cutoff
-		self.nodes = child_nodes
-		self.v = v
+		self.nodes = child_nodes # Total nodes generated
+		self.v = v # v value from alpha beta search function
 
 
 class AB_Board_Player:
@@ -454,9 +463,9 @@ def main():
 	if difficulty == 1:
 		depth_limit = 4
 	elif difficulty == 2:
-		depth_limit = 10
+		depth_limit = 8
 	else:
-		depth_limit = 13
+		depth_limit = 12
 
 	#Select if you want to move first or second
 	print('You are Black. Do you want to move first? Press Y for Yes (or) N for No.')
