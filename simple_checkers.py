@@ -1,6 +1,7 @@
 import random
 from copy import deepcopy
 import numpy as np
+import time
 
 BOARD_SIZE = 6
 NUM_OF_PIECES = 6 # pieces of each color
@@ -211,6 +212,19 @@ class Checkers:
 		else:
 			print("It's a draw!")
 
+	def timing_function(some_function):
+		"""Outputs the time a function takes to execute."""
+
+		def wrapper(*args, **kwargs):
+			t1 = time.time()
+			# print(f't1 = {t1}')
+			ab_output = some_function(*args, **kwargs)
+			t2 = time.time()
+			# print(f't2 = {t2}')
+			print("Time it took to run the function: " + str((t2 - t1)) + "\n")
+			return ab_output
+		return wrapper
+
 	def makeAMove(self, move):
 		''' Moves from a position to a position and update the empty positions'''
 		self.board.moveFromTo(move, self.turn)
@@ -268,6 +282,7 @@ class Checkers:
 		else:
 			return 0
 
+	@timing_function
 	def alpha_beta_search(self, state):
 		''' Returns the best action'''
 
@@ -465,7 +480,7 @@ def main():
 	elif difficulty == 2:
 		depth_limit = 8
 	else:
-		depth_limit = 12
+		depth_limit = 13
 
 	#Select if you want to move first or second
 	print('You are Black. Do you want to move first? Press Y for Yes (or) N for No.')
